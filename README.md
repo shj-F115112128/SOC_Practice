@@ -7,9 +7,7 @@ Reference solution for the AMBA SoC course assignment (due 10/15):
    masters and multiple slaves.
 2. Draw the **Message Sequence Chart (MSC)** for `CPU (Master)` / `Mem Controller (Slave)` /
    `SIP (Master+Slave, with internal DMA)`, for both AHB and AXI.
-
-> Bonus (RTL code + simulation for part 1) is out of scope for this pass — see
-> [Possible next steps](#possible-next-steps).
+3. **Bonus:** RTL code + simulation for part 1's slave wrapper FSMs.
 
 ## Contents
 
@@ -19,6 +17,7 @@ Reference solution for the AMBA SoC course assignment (due 10/15):
 | [docs/02-axi-wrapper-fsm.md](docs/02-axi-wrapper-fsm.md) | AXI slave wrapper FSMs (write/read channel), AXI master wrapper FSMs (DMA write/read), multi-master/slave interconnect note |
 | [docs/03-msc-ahb.md](docs/03-msc-ahb.md) | MSC: CPU configures UART → UART DMA bursts RX data to memory → CPU reads status + data, over AHB |
 | [docs/04-msc-axi.md](docs/04-msc-axi.md) | Same scenario over AXI's 5 channels, highlighting outstanding/concurrent transactions |
+| [docs/05-rtl-simulation.md](docs/05-rtl-simulation.md) | **Bonus:** Verilog RTL + self-checking testbenches for the AHB and AXI-Lite slave wrapper FSMs, passing under Icarus Verilog |
 
 All diagrams are [Mermaid](https://mermaid.js.org/) (`stateDiagram-v2` / `sequenceDiagram`) embedded in
 Markdown — they render natively on GitHub, no external tooling needed.
@@ -42,6 +41,5 @@ Markdown — they render natively on GitHub, no external tooling needed.
 
 ## Possible next steps
 
-- Bonus: implement the AHB UART slave wrapper (part 1) in Verilog/RTL and simulate it against a simple
-  testbench (e.g. Icarus Verilog + cocotb or a plain self-checking testbench) to verify the FSM transitions
-  above.
+- The master/DMA wrapper FSMs and the AHB arbiter (docs 01/02) are conceptual diagrams only — implementing
+  and simulating those would need a second bus-functional model standing in for the memory-side slave.
