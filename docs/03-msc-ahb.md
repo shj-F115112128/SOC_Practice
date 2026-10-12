@@ -1,8 +1,8 @@
 # Message Sequence Chart — AHB
 
-Participants per the assignment: **CPU (Master)**, **Mem Controller (Slave)**, **SIP = UART (Master + Slave,
-contains an internal DMA engine)**. Scenario: CPU configures the UART, a full RX word arrives and is
-DMA'd to memory, then the CPU reads back the status and data.
+依作業要求的參與者：**CPU (Master)**、**Mem Controller (Slave)**、**SIP = UART (Master + Slave，
+內含 DMA 引擎)**。情境：CPU 設定 UART，收到完整一筆 RX 資料後由 DMA 搬到記憶體，最後 CPU 讀回
+狀態與資料。
 
 ```mermaid
 sequenceDiagram
@@ -11,43 +11,44 @@ sequenceDiagram
     participant SIP as SIP / UART (M+S)
     participant MEM as Mem Controller (S)
 
-    Note over CPU,SIP: 1. CPU configures UART (CPU=M, SIP=S)
+    Note over CPU,SIP: 1. CPU 設定 UART（CPU=M, SIP=S）
     CPU->>SIP: HTRANS=NONSEQ, HADDR=CTRL_REG, HWRITE=1, HWDATA=enable|dma_thresh
     SIP-->>CPU: HREADYOUT=1, HRESP=OKAY
 
-    Note over SIP: UART receives serial bytes, RX FIFO fills to threshold
-    SIP->>ARB: HBUSREQ1 (SIP requests bus as Master)
+    Note over SIP: UART 收到序列資料，RX FIFO 填到門檻值
+    SIP->>ARB: HBUSREQ1（SIP 以 Master 身份請求匯流排）
     ARB-->>SIP: HGRANT1=1
 
-    Note over SIP,MEM: 2. SIP-DMA bursts RX data to memory (SIP=M, MEM=S)
+    Note over SIP,MEM: 2. SIP-DMA 把 RX 資料 burst 寫入記憶體（SIP=M, MEM=S）
     SIP->>MEM: HTRANS=NONSEQ, HADDR=buf_ptr, HWRITE=1, HBURST=INCR4
-    loop 3 more beats
+    loop 還有 3 拍
         SIP->>MEM: HTRANS=SEQ, HADDR=buf_ptr+N, HWDATA=rx_byte[n]
         MEM-->>SIP: HREADYOUT=1, HRESP=OKAY
     end
-    SIP->>ARB: deassert HBUSREQ1 (burst done)
+    SIP->>ARB: 解除 HBUSREQ1（burst 完成）
 
-    Note over SIP,CPU: 3. SIP raises IRQ (out-of-band, not on AHB)
+    Note over SIP,CPU: 3. SIP 發出中斷（IRQ，非 AHB 訊號，屬於帶外）
     SIP-)CPU: uart_irq = 1
 
-    Note over CPU,SIP: 4. CPU polls/reads status (CPU=M, SIP=S)
+    Note over CPU,SIP: 4. CPU 輪詢/讀取狀態（CPU=M, SIP=S）
     CPU->>SIP: HTRANS=NONSEQ, HADDR=STATUS_REG, HWRITE=0
     SIP-->>CPU: HREADYOUT=1, HRDATA=dma_done|rx_count
 
-    Note over CPU,MEM: 5. CPU reads the received data (CPU=M, MEM=S)
+    Note over CPU,MEM: 5. CPU 讀取收到的資料（CPU=M, MEM=S）
     CPU->>MEM: HTRANS=NONSEQ, HADDR=buf_ptr, HWRITE=0
     MEM-->>CPU: HREADYOUT=1, HRDATA=rx_byte[0]
-    loop 3 more beats
+    loop 還有 3 拍
         CPU->>MEM: HTRANS=SEQ, HADDR=buf_ptr+N
         MEM-->>CPU: HRDATA=rx_byte[n]
     end
 ```
 
-## Notes
+## 補充說明
 
-- Steps 1, 4 and 5 are ordinary single/burst AHB transfers with the CPU as Master; step 2 is the SIP's
-  internal DMA acting as Master — only one of CPU/SIP can own the bus at a time (see the arbiter FSM in
-  [01-ahb-wrapper-fsm.md](01-ahb-wrapper-fsm.md)), so step 4/5 cannot start until step 2's burst finishes.
-- The symmetric TX path (CPU writes bytes to memory, SIP-DMA later bursts them out of memory into the TX
-  FIFO, UART serializes them) follows the same shape with the HWRITE direction on the DMA burst flipped to
-  a read (SIP=M issuing `HWRITE=0` against the Mem Controller).
+- 步驟 1、4、5 都是 CPU 以 Master 身份發出的一般單次/burst AHB 傳輸；步驟 2 則是 SIP 內部 DMA
+  以 Master 身份動作 — 同一時間只有 CPU 或 SIP 其中一個能擁有匯流排（見
+  [01-ahb-wrapper-fsm.md](01-ahb-wrapper-fsm.md) 的 arbiter FSM），所以步驟 4/5 要等步驟 2 的
+  burst 結束才能開始。
+- 對稱的 TX 路徑（CPU 把資料寫進記憶體，之後 SIP-DMA 再把資料 burst 讀出放進 TX FIFO，UART
+  再序列化送出）形狀相同，只是 DMA burst 的 HWRITE 方向改成讀取（SIP=M 對 Mem Controller 發出
+  `HWRITE=0`）。

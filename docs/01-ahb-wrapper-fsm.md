@@ -1,95 +1,95 @@
 # AHB Master / Slave Wrapper FSM — UART SIP
 
-Selected IP (SIP): a UART core (e.g. [opencores.org `uart16550`](https://opencores.org/projects/uart16550) /
-similar FIFO-based UART), wrapped to sit on an AHB bus. The UART has:
+選用的 IP（SIP）：一顆 UART core（例如 [opencores.org `uart16550`](https://opencores.org/projects/uart16550)
+或類似、內建 FIFO 的 UART），把它包裝成掛在 AHB 匯流排上的模組。這顆 UART 有：
 
-- A **register file** (control, status, baud divisor, TX data, RX data) → accessed as an **AHB slave**.
-- An internal **DMA engine** that bursts received bytes out to memory, and fetches bytes to transmit,
-  without CPU intervention → acts as an **AHB master** when it owns the bus.
+- 一組 **暫存器檔**（control、status、baud divisor、TX data、RX data）→ 以 **AHB slave** 的身份被存取。
+- 內部的 **DMA 引擎**，負責把收到的 byte burst 寫回記憶體、以及把要傳送的 byte 從記憶體讀出，
+  全程不需要 CPU 介入 → 當它取得匯流排控制權時，扮演 **AHB master**。
 
-Because the system has multiple masters (CPU + the UART's DMA) and multiple slaves (memory controller +
-UART register slave, at minimum), a central **arbiter** and **address decoder** sit between them, per the
-AHB spec's multi-layer/shared-bus topology.
+因為系統裡有多個 Master（CPU + UART 的 DMA）與多個 Slave（至少有記憶體控制器 + UART 暫存器
+slave），中間需要一個 **arbiter（仲裁器）** 與 **address decoder（位址解碼器）**，這是 AHB
+規格書裡多層/共享匯流排拓樸的標準做法。
 
-## System topology
+## 系統拓樸
 
 ```mermaid
 flowchart LR
     CPU["CPU (Master 0)"] --> ARB
-    DMA["SIP-DMA (Master 1)\ninside UART wrapper"] --> ARB
-    ARB["Arbiter + Address Mux\n(HMASTER select)"] --> BUS["AHB Bus"]
+    DMA["SIP-DMA (Master 1)\n位於 UART wrapper 內"] --> ARB
+    ARB["Arbiter + Address Mux\n（HMASTER 選擇）"] --> BUS["AHB Bus"]
     BUS --> DEC["Address Decoder"]
     DEC --> MEM["Mem Controller (Slave 0)"]
     DEC --> UARTREG["UART Reg File (Slave 1)"]
 ```
 
-## 1. AHB Slave Wrapper FSM (UART register file)
+## 1. AHB Slave Wrapper FSM（UART 暫存器檔）
 
-Controls `HREADYOUT`/`HRESP` while exposing the UART's control/status/TX/RX registers. State names follow
-the same convention used for the generic AHB Subordinate FSM (see `project-ahb-fsm-design`): address phase
-is `NONSEQ`/`SEQ`, data phase inserts `WAIT` while the register isn't ready (e.g. RX FIFO empty on a read,
-or TX FIFO full on a write), and bad accesses get a two-cycle `ERROR`.
+負責控制 `HREADYOUT`/`HRESP`，並把 UART 的 control/status/TX/RX 暫存器開放給外部存取。狀態命名
+沿用一般 AHB Subordinate FSM 的慣例（見 `project-ahb-fsm-design`）：位址階段是
+`NONSEQ`/`SEQ`，資料階段若暫存器還沒 ready（例如讀取時 RX FIFO 是空的、或寫入時 TX FIFO 滿了）
+就插入 `WAIT`，非法存取則回應兩個 cycle 的 `ERROR`。
 
 ```mermaid
 stateDiagram-v2
     [*] --> IDLE
     IDLE --> NONSEQ: HSEL & HREADY & HTRANS=NONSEQ
-    NONSEQ --> NONSEQ: HSEL & HREADY & HTRANS=NONSEQ (back-to-back single xfers)
-    NONSEQ --> OKAY: addr valid & reg ready\n(HREADYOUT=1, drive HRDATA / latch HWDATA)
-    NONSEQ --> WAIT: addr valid & reg busy\n(HREADYOUT=0)
-    NONSEQ --> ERR1: addr invalid or illegal write\n(HREADYOUT=0,HRESP=ERROR)
-    WAIT --> WAIT: reg still busy (RX FIFO empty / TX FIFO full)
-    WAIT --> OKAY: reg ready (HREADYOUT=1,HRESP=OKAY)
-    WAIT --> ERR1: timeout / illegal
-    OKAY --> IDLE: HTRANS=IDLE next
-    OKAY --> NONSEQ: next transfer pipelined
-    ERR1 --> ERR2: HREADYOUT=0,HRESP=ERROR (2nd cycle)
+    NONSEQ --> NONSEQ: HSEL & HREADY & HTRANS=NONSEQ（背靠背的單次傳輸）
+    NONSEQ --> OKAY: 位址合法 & 暫存器 ready\n（HREADYOUT=1，驅動 HRDATA / 鎖存 HWDATA）
+    NONSEQ --> WAIT: 位址合法 & 暫存器忙碌\n（HREADYOUT=0）
+    NONSEQ --> ERR1: 位址非法或寫入不合法\n（HREADYOUT=0,HRESP=ERROR）
+    WAIT --> WAIT: 暫存器仍忙碌（RX FIFO 空 / TX FIFO 滿）
+    WAIT --> OKAY: 暫存器已 ready（HREADYOUT=1,HRESP=OKAY）
+    WAIT --> ERR1: timeout / 非法
+    OKAY --> IDLE: 下一拍 HTRANS=IDLE
+    OKAY --> NONSEQ: 下一筆傳輸被 pipeline 接上
+    ERR1 --> ERR2: HREADYOUT=0,HRESP=ERROR（第 2 個 cycle）
     ERR2 --> IDLE: HREADYOUT=1
 ```
 
-## 2. AHB Master Wrapper FSM (UART-internal DMA)
+## 2. AHB Master Wrapper FSM（UART 內部 DMA）
 
-Triggered by the UART's FIFO thresholds (RX half-full → write burst to memory; TX below threshold → read
-burst from memory). Must request the bus from the arbiter before driving any address phase.
+由 UART 的 FIFO 門檻值觸發（RX 半滿 → burst 寫入記憶體；TX 低於門檻 → burst 從記憶體讀取）。
+在驅動任何位址階段之前，必須先向 arbiter 要求匯流排。
 
 ```mermaid
 stateDiagram-v2
     [*] --> IDLE
-    IDLE --> REQ: RX threshold hit / TX needs refill\n(assert HBUSREQx)
-    REQ --> REQ: HGRANTx=0 (still arbitrating)
-    REQ --> NONSEQ: HGRANTx=1 & HREADY\n(drive HADDR, HTRANS=NONSEQ, HBURST=INCRx)
-    NONSEQ --> SEQ: HREADY=1 (first beat accepted)
-    SEQ --> SEQ: HREADY=1 & beats remaining\n(HTRANS=SEQ)
-    SEQ --> BUSY: HREADY=1 but DMA FIFO not ready for next beat\n(HTRANS=BUSY, holds address)
-    BUSY --> SEQ: FIFO ready again
-    SEQ --> DONE: HREADY=1 & last beat
-    SEQ --> ERR1: HRESP=ERROR\n(abort burst)
-    ERR1 --> ERR2: 2nd error cycle
-    ERR2 --> IDLE: set UART error status bit, release HBUSREQx
-    DONE --> IDLE: release HBUSREQx, set UART done/IRQ status bit
+    IDLE --> REQ: 觸發 RX 門檻 / TX 需要補資料\n（assert HBUSREQx）
+    REQ --> REQ: HGRANTx=0（仍在仲裁中）
+    REQ --> NONSEQ: HGRANTx=1 & HREADY\n（驅動 HADDR、HTRANS=NONSEQ、HBURST=INCRx）
+    NONSEQ --> SEQ: HREADY=1（第一拍被接受）
+    SEQ --> SEQ: HREADY=1 & 還有剩餘拍數\n（HTRANS=SEQ）
+    SEQ --> BUSY: HREADY=1 但 DMA FIFO 還沒 ready\n（HTRANS=BUSY，保持位址不變）
+    BUSY --> SEQ: FIFO 再次 ready
+    SEQ --> DONE: HREADY=1 & 最後一拍
+    SEQ --> ERR1: HRESP=ERROR\n（中止此次 burst）
+    ERR1 --> ERR2: 第 2 個 error cycle
+    ERR2 --> IDLE: 設定 UART 錯誤狀態位元，釋放 HBUSREQx
+    DONE --> IDLE: 釋放 HBUSREQx，設定 UART 完成/IRQ 狀態位元
 ```
 
-## 3. Arbiter FSM (multi-master support)
+## 3. Arbiter FSM（支援多 Master）
 
-Minimal fixed-priority arbiter (CPU > DMA); round-robin is a drop-in variant. Per AHB rules, the grant can
-only change at a transfer boundary (`HREADY=1` and not mid-`SEQ` burst, i.e. `HBURST`/`HTRANS` indicate the
-last beat or master deasserts request).
+最簡單的固定優先權 arbiter（CPU > DMA）；round-robin 可直接替換。依照 AHB 規則，grant 只能在
+傳輸邊界切換（`HREADY=1` 且不在 `SEQ` burst 中途，也就是 `HBURST`/`HTRANS` 顯示最後一拍，或該
+master 自行解除請求）。
 
 ```mermaid
 stateDiagram-v2
     [*] --> GRANT_NONE
     GRANT_NONE --> GRANT_CPU: HBUSREQ0 & HREADY
     GRANT_NONE --> GRANT_DMA: !HBUSREQ0 & HBUSREQ1 & HREADY
-    GRANT_CPU --> GRANT_CPU: HBUSREQ0 (holds, even if DMA also requests — higher priority)
-    GRANT_CPU --> GRANT_DMA: !HBUSREQ0 & HBUSREQ1 & HREADY & burst boundary
+    GRANT_CPU --> GRANT_CPU: HBUSREQ0（持續保持，即使 DMA 也在請求 — CPU 優先權較高）
+    GRANT_CPU --> GRANT_DMA: !HBUSREQ0 & HBUSREQ1 & HREADY & 到達 burst 邊界
     GRANT_CPU --> GRANT_NONE: !HBUSREQ0 & !HBUSREQ1 & HREADY
-    GRANT_DMA --> GRANT_DMA: HBUSREQ1 & mid-burst (HBURST != SINGLE, not last beat)
-    GRANT_DMA --> GRANT_CPU: HBUSREQ0 & HREADY & burst boundary\n(DMA preempted at next safe point)
+    GRANT_DMA --> GRANT_DMA: HBUSREQ1 & burst 進行中（HBURST != SINGLE，非最後一拍）
+    GRANT_DMA --> GRANT_CPU: HBUSREQ0 & HREADY & 到達 burst 邊界\n（DMA 在下一個安全點被搶佔）
     GRANT_DMA --> GRANT_NONE: !HBUSREQ0 & !HBUSREQ1 & HREADY
 ```
 
-## Multi-slave note
+## 多 Slave 補充說明
 
-The decoder maps `HADDR` ranges to `HSELx`; only the module above (the UART slave wrapper) changes per
-SIP — the memory controller slave and decoder/mux-back logic are standard AHB infrastructure and are not
-redrawn here.
+Decoder 會把 `HADDR` 範圍對應到各個 `HSELx`；每顆 SIP 真正不同的只有上面這個模組（UART slave
+wrapper）— 記憶體控制器 slave、以及 decoder/mux-back 邏輯都是標準 AHB 基礎架構，這裡就不重複
+畫出。

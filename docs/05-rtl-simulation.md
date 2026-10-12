@@ -1,42 +1,46 @@
-# Bonus: RTL + Simulation (Part 1 — Slave Wrapper FSMs)
+# Bonus：RTL + 模擬（第 1 題 — Slave Wrapper FSM）
 
-Implements and simulates the **AHB and AXI-Lite slave wrapper FSMs** from
-[01-ahb-wrapper-fsm.md](01-ahb-wrapper-fsm.md) and [02-axi-wrapper-fsm.md](02-axi-wrapper-fsm.md) for the
-UART SIP's register file (CTRL/STATUS/TXDATA/RXDATA), using [Icarus Verilog](http://iverilog.icarus.com/).
+針對 UART SIP 的暫存器檔（CTRL/STATUS/TXDATA/RXDATA），實作並模擬
+[01-ahb-wrapper-fsm.md](01-ahb-wrapper-fsm.md) 與 [02-axi-wrapper-fsm.md](02-axi-wrapper-fsm.md)
+裡的 **AHB 與 AXI-Lite slave wrapper FSM**，使用 [Icarus Verilog](http://iverilog.icarus.com/)。
 
-## Scope
+## 範圍
 
-In scope (implemented + simulated):
-- `rtl/ahb_uart_slave_wrapper.v` — AHB-Lite slave wrapper FSM: `IDLE → NONSEQ → {WAIT* →} OKAY → IDLE` and
-  `IDLE → NONSEQ → ERR1 → ERR2 → IDLE`, including pipelined back-to-back transfers.
-- `rtl/axi_lite_uart_slave_wrapper.v` — AXI4-Lite slave wrapper: independent write (`IDLE → WADDR → WDATA{wait*} → RESP → IDLE`)
-  and read (`IDLE → RADDR → RDATA → IDLE`) channel FSMs.
+在範圍內（已實作 + 已模擬）：
+- `rtl/ahb_uart_slave_wrapper.v` — AHB-Lite slave wrapper FSM：
+  `IDLE → NONSEQ → {WAIT* →} OKAY → IDLE` 與 `IDLE → NONSEQ → ERR1 → ERR2 → IDLE`，含背靠背的
+  pipelined 傳輸。
+- `rtl/axi_lite_uart_slave_wrapper.v` — AXI4-Lite slave wrapper：獨立的 write
+  (`IDLE → WADDR → WDATA{wait*} → RESP → IDLE`) 與 read (`IDLE → RADDR → RDATA → IDLE`)
+  channel FSM。
 
-Out of scope (left as the conceptual Mermaid FSMs in docs 01/02, not implemented in RTL): the **master/DMA
-wrapper FSMs** and the **AHB arbiter FSM** for multi-master arbitration — those need a second bus-functional
-model acting as the memory-side slave to simulate meaningfully, which is a larger undertaking than this
-bonus pass covers. The two register-file slave wrappers are the part that's actually testable in isolation
-and are the most direct RTL expression of "the wrapper FSM", so they were prioritized.
+不在範圍內（留在 docs 01/02 的概念 Mermaid 圖，沒有實作成 RTL）：**master/DMA wrapper FSM** 與
+**AHB arbiter FSM**（多 Master 仲裁用）— 這兩個要有意義地模擬，需要再做一個代表記憶體端 slave
+的 bus-functional model，工作量超出這次 bonus 的範圍。這兩個暫存器檔 slave wrapper 是真正能
+獨立測試、也最直接對應「wrapper FSM」本身的部分，所以優先做這兩個。
 
-Both wrappers share one simplified UART register model so their behavior is directly comparable:
+兩個 wrapper 共用同一套簡化過的 UART 暫存器模型，行為可以直接互相對照：
 
-| Offset | Reg | Access | Behavior |
+| 位移 | 暫存器 | 存取 | 行為 |
 |---|---|---|---|
 | `0x0` | CTRL | R/W | bit0 = enable |
 | `0x4` | STATUS | RO | bit0 = tx_busy, bit1 = rx_ready |
-| `0x8` | TXDATA | R/W | write starts a simulated transmission (busy for 4 cycles); a write while busy is back-pressured (AHB: `WAIT`; AXI: `WREADY=0`) |
-| `0xC` | RXDATA | RO | reading clears `rx_ready`; a `rx_byte_valid`/`rx_byte_data` testbench backdoor emulates a received byte (RX-FIFO-empty blocking read was simplified to non-blocking — see comments in the RTL) |
-| `≥0x10` | — | — | AHB: 2-cycle `HRESP=ERROR`; AXI: `BRESP`/`RRESP = SLVERR` |
+| `0x8` | TXDATA | R/W | 寫入會啟動一次模擬的傳輸（忙碌 4 個 cycle）；忙碌中再寫入會被
+  back-pressure（AHB：`WAIT`；AXI：`WREADY=0`） |
+| `0xC` | RXDATA | RO | 讀取後會清除 `rx_ready`；testbench 用 `rx_byte_valid`/`rx_byte_data`
+  後門訊號模擬收到一個 byte（RX FIFO 為空時應該 block 的讀取，這裡簡化成 non-blocking — 詳見
+  RTL 裡的註解） |
+| `≥0x10` | — | — | AHB：2-cycle `HRESP=ERROR`；AXI：`BRESP`/`RRESP = SLVERR` |
 
-## Running it
+## 怎麼跑
 
-Requires Icarus Verilog (`winget install Icarus.Verilog`, or `apt install iverilog` on Linux):
+需要 Icarus Verilog（`winget install Icarus.Verilog`，Linux 上可用 `apt install iverilog`）：
 
 ```sh
 sim/run_sims.sh
 ```
 
-or manually:
+或手動：
 
 ```sh
 iverilog -g2005 -o sim/ahb_tb.vvp rtl/ahb_uart_slave_wrapper.v sim/tb_ahb_uart_slave_wrapper.v
@@ -46,16 +50,16 @@ iverilog -g2005 -o sim/axi_tb.vvp rtl/axi_lite_uart_slave_wrapper.v sim/tb_axi_l
 vvp sim/axi_tb.vvp
 ```
 
-Each testbench is self-checking (`$display [PASS]/[FAIL]` per check, `$fatal` on any failure) and dumps a
-`.vcd` waveform for viewing in GTKWave if you want to inspect the FSM transitions directly.
+每個 testbench 都會自我檢查（每項檢查印出 `$display [PASS]/[FAIL]`，任何失敗就 `$fatal`），
+並匯出 `.vcd` 波形，想直接看 FSM 狀態轉換的話可以用 GTKWave 開。
 
-## Results
+## 結果
 
 ### AHB UART slave wrapper — `sim/tb_ahb_uart_slave_wrapper.v`
 
-Covers: plain OKAY read/write, back-to-back pipelined transfers (`NONSEQ→NONSEQ`), `WAIT` insertion when a
-TXDATA write collides with `tx_busy`, the RX-arrival/read path, and the 2-cycle `ERROR` response for an
-out-of-range address followed by normal recovery.
+涵蓋：一般的 OKAY 讀寫、背靠背的 pipelined 傳輸（`NONSEQ→NONSEQ`）、TXDATA 寫入撞上 `tx_busy`
+時插入 `WAIT`、RX 資料到達後讀取的流程，以及位址超出範圍時 2-cycle 的 `ERROR` 回應、之後恢復
+正常存取。
 
 ```
 [PASS] 66000: CTRL write returns OKAY
@@ -79,9 +83,9 @@ out-of-range address followed by normal recovery.
 
 ### AXI-Lite UART slave wrapper — `sim/tb_axi_lite_uart_slave_wrapper.v`
 
-Covers the same scenarios on AXI, plus the protocol difference the MSC docs call out: an independent
-`STATUS` read on the read channel completes **without waiting** for a TXDATA write that's back-pressured on
-the write channel (`fork`/`join` issuing both concurrently) — not possible on AHB's single shared bus.
+涵蓋跟 AHB 版一樣的情境，再加上 MSC 文件裡提到的協定差異：獨立的 `STATUS` 讀取（read
+channel）**不用等** write channel 上被 back-pressure 的 TXDATA 寫入完成就能完成（用
+`fork`/`join` 同時發出兩者）— 這在 AHB 單一共享匯流排上是做不到的。
 
 ```
 [PASS] 76000: CTRL write returns OKAY
@@ -101,4 +105,4 @@ the write channel (`fork`/`join` issuing both concurrently) — not possible on 
 ==== AXI-Lite UART slave wrapper: 13 passed, 0 failed ====
 ```
 
-Both suites pass (28/28 checks) under Icarus Verilog 12.0.
+兩個測試套件在 Icarus Verilog 12.0 下全部通過（28/28 項檢查）。
