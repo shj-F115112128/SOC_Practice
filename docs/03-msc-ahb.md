@@ -45,10 +45,8 @@ sequenceDiagram
 
 ## 補充說明
 
-- 步驟 1、4、5 都是 CPU 以 Master 身份發出的一般單次/burst AHB 傳輸；步驟 2 則是 SIP 內部 DMA
-  以 Master 身份動作 — 同一時間只有 CPU 或 SIP 其中一個能擁有匯流排（見
-  [01-ahb-wrapper-fsm.md](01-ahb-wrapper-fsm.md) 的 arbiter FSM），所以步驟 4/5 要等步驟 2 的
-  burst 結束才能開始。
-- 對稱的 TX 路徑（CPU 把資料寫進記憶體，之後 SIP-DMA 再把資料 burst 讀出放進 TX FIFO，UART
-  再序列化送出）形狀相同，只是 DMA burst 的 HWRITE 方向改成讀取（SIP=M 對 Mem Controller 發出
-  `HWRITE=0`）。
+步驟 2 的時候 SIP 自己變成 master 在搬資料，這時候匯流排是它的，CPU 要等（arbiter 見
+[01-ahb-wrapper-fsm.md](01-ahb-wrapper-fsm.md)），所以步驟 4/5 得排在 burst 結束後面。
+
+TX 方向沒有另外畫一張圖，因為形狀幾乎一樣，只是 DMA burst 變成讀記憶體（`HWRITE=0`）再丟進
+TX FIFO，其他步驟照搬就好。

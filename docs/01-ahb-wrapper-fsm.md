@@ -26,9 +26,9 @@ flowchart LR
 ## 1. AHB Slave Wrapper FSM（UART 暫存器檔）
 
 負責控制 `HREADYOUT`/`HRESP`，並把 UART 的 control/status/TX/RX 暫存器開放給外部存取。狀態命名
-沿用一般 AHB Subordinate FSM 的慣例（見 `project-ahb-fsm-design`）：位址階段是
-`NONSEQ`/`SEQ`，資料階段若暫存器還沒 ready（例如讀取時 RX FIFO 是空的、或寫入時 TX FIFO 滿了）
-就插入 `WAIT`，非法存取則回應兩個 cycle 的 `ERROR`。
+沿用上課教的 AHB Subordinate FSM 命名：位址階段是 `NONSEQ`/`SEQ`，資料階段若暫存器還沒 ready
+（例如讀取時 RX FIFO 是空的、或寫入時 TX FIFO 滿了）就插入 `WAIT`，非法存取則回應兩個 cycle 的
+`ERROR`。
 
 ```mermaid
 stateDiagram-v2

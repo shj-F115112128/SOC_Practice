@@ -18,27 +18,18 @@ AMBA SoC 課程作業（10/15 繳交）參考解答：
 | [docs/04-msc-axi.md](docs/04-msc-axi.md) | 同樣情境在 AXI 5 個 channel 上重畫，凸顯 outstanding/並行交易 |
 | [docs/05-rtl-simulation.md](docs/05-rtl-simulation.md) | **Bonus：** AHB、AXI-Lite slave wrapper FSM 的 Verilog RTL 與自我檢查 testbench，已在 Icarus Verilog 下跑過並通過 |
 
-所有圖都用 [Mermaid](https://mermaid.js.org/)（`stateDiagram-v2` / `sequenceDiagram`）直接寫在 Markdown
-裡 — GitHub 會原生渲染，不需要額外工具匯出。
+圖都是用 [Mermaid](https://mermaid.js.org/) 直接寫在 Markdown 裡，GitHub 開起來就能看。
 
-## 設計決策
+## 一些筆記
 
-- **SIP = UART**，內含 DMA 引擎，對應白板上的範例（`ex. UART`）以及作業要求的
-  `SIP(M+S, 內有DMA)`。
-- AHB FSM 的狀態命名（`IDLE/NONSEQ/SEQ/BUSY/WAIT/ERR1/ERR2`）沿用課程前面教過的 AHB
-  Manager/Subordinate 通用 FSM 慣例（來自 AHB 協定規格書 `IHI0033C`），這裡把它套用到實際的
-  周邊 wrapper，而不只是抽象協定層級。
-- AXI wrapper FSM 依 channel 拆開（write：AW/W/B，read：AR/R），因為這些 channel 彼此獨立 —
-  這也是為什麼 AXI 版 MSC 可以讓 CPU 的狀態讀取跟 DMA 的 write burst 重疊，而 AHB 版不行
-  （單一共享匯流排，同一時間只有一個 arbiter grant）。
+SIP 選 UART（內含 DMA），對應白板上的例子跟作業要求的 `SIP(M+S, 內有DMA)`。AHB 那邊的狀態命名
+（`IDLE/NONSEQ/SEQ/BUSY/WAIT/ERR1/ERR2`）照課堂教的 Manager/Subordinate FSM 來，套到實際的周邊
+wrapper 上。AXI 因為 write/read channel（AW/W/B 跟 AR/R）本來就是獨立的，所以 wrapper FSM 也拆
+成兩條，這樣 AXI 版 MSC 才能讓 CPU 讀狀態跟 DMA 的 write burst 重疊 — AHB 是共用匯流排，同一時
+間只有一個 master 拿得到 grant，做不到這點。
 
-## 參考資料
+課程教材：`IHI0033C_amba_ahb_protocol_spec.pdf`、`IHI0022L_amba_axi_protocol_spec.pdf`（上層資
+料夾）。UART 暫存器配置參考了 [opencores.org](https://opencores.org/) 上常見的 UART core 風格。
 
-- AMBA AHB 協定規格書 — `IHI0033C_amba_ahb_protocol_spec.pdf`（課程教材，上層資料夾）
-- AMBA AXI 協定規格書 — `IHI0022L_amba_axi_protocol_spec.pdf` / `AMBAaxi.pdf`（課程教材，上層資料夾）
-- [opencores.org](https://opencores.org/) — 開源 IP core，含 AHB/AXI/Zynq 風格的 UART wrapper
-
-## 可能的後續
-
-- Master/DMA wrapper FSM 以及 AHB arbiter（docs 01/02）目前只有概念圖 — 要實作並模擬的話，
-  需要再做一個代表記憶體端 slave 的 bus-functional model。
+Master/DMA wrapper FSM 跟 AHB arbiter（docs 01/02）目前還只有概念圖，沒刻成 RTL — 要模擬的話
+還要再寫一個記憶體端的 slave 模型，這次先沒做。

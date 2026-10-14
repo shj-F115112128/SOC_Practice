@@ -56,10 +56,10 @@ sequenceDiagram
 
 ## 補充說明
 
-- 步驟 4 刻意畫在 `par` 區塊裡，凸顯它可以在 AR/R channel 上發出，而步驟 2 的 write burst 還在
-  AW/W/B 上進行中 — 這在單一共享的 AHB 匯流排上是做不到的。
-- `AWID`/`ARID` 標記讓 Mem Controller 與 interconnect 能把回應路由回正確的 master，即使 CPU 跟
-  SIP 的多筆 burst 同時 outstanding；詳見 [02-axi-wrapper-fsm.md](02-axi-wrapper-fsm.md) 裡逐
-  channel 的 FSM。
-- 對稱的 TX 路徑（CPU 把資料寫進記憶體，SIP-DMA 再透過它的 AR/R master 路徑把資料從記憶體
-  burst 讀出放進 TX FIFO，UART 再序列化送出）跟步驟 2 形狀相同，只是改用 SIP 的 read-DMA FSM。
+步驟 4 放進 `par` 區塊是故意的 — 想表示它跑在 AR/R channel，跟步驟 2 的 write burst（還在
+AW/W/B 上）其實是同時進行的，AHB 版做不到這件事。
+
+靠的是 `AWID`/`ARID`：Mem Controller 跟 interconnect 用這個 ID 把回應導回正確的 master，所以
+CPU 跟 SIP 的交易可以一起 outstanding（細節在 [02-axi-wrapper-fsm.md](02-axi-wrapper-fsm.md)）。
+
+TX 路徑一樣沒另外畫，概念上跟步驟 2 一樣，只是換成 SIP 的 read-DMA FSM 去讀記憶體。

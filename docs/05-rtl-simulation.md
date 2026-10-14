@@ -14,10 +14,9 @@
   (`IDLE → WADDR → WDATA{wait*} → RESP → IDLE`) 與 read (`IDLE → RADDR → RDATA → IDLE`)
   channel FSM。
 
-不在範圍內（留在 docs 01/02 的概念 Mermaid 圖，沒有實作成 RTL）：**master/DMA wrapper FSM** 與
-**AHB arbiter FSM**（多 Master 仲裁用）— 這兩個要有意義地模擬，需要再做一個代表記憶體端 slave
-的 bus-functional model，工作量超出這次 bonus 的範圍。這兩個暫存器檔 slave wrapper 是真正能
-獨立測試、也最直接對應「wrapper FSM」本身的部分，所以優先做這兩個。
+沒做的部分：**master/DMA wrapper FSM** 跟 **AHB arbiter FSM**，還是留在 docs 01/02 的 Mermaid
+圖那邊。要讓它們動起來還得另外寫一個記憶體端的 bus-functional model 當對手，時間抓不夠就先放
+一邊 — 這兩個暫存器檔 slave wrapper 本身就能單獨測，先把這個做完整比較實際。
 
 兩個 wrapper 共用同一套簡化過的 UART 暫存器模型，行為可以直接互相對照：
 
