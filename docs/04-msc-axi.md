@@ -5,7 +5,9 @@
 彼此獨立，AXI 版不需要像 AHB 版那樣畫一個獨立的仲裁角色，也不用等 write burst 完全結束才能讀
 狀態。
 
-圖：[../diagrams/axi_msc.drawio](../diagrams/axi_msc.drawio)
+![MSC - AXI](../Upload/image/axi_msc.drawio.png)
+🔍 [看大圖](https://raw.githubusercontent.com/shj-F115112128/SOC_Practice/main/Upload/image/axi_msc.drawio.png) ／
+原始檔：[Upload/axi_msc.drawio](../Upload/axi_msc.drawio)
 
 ## 四個階段
 

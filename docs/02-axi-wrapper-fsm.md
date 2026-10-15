@@ -7,13 +7,17 @@ AXI 上。跟 AHB 單一共享的位址/資料匯流排不同，AXI 有 5 個獨
 
 ## 系統拓樸
 
-圖：[../diagrams/axi_topology.drawio](../diagrams/axi_topology.drawio)
+![AXI 系統拓樸](../Upload/image/axi_topology.drawio.png)
+🔍 [看大圖](https://raw.githubusercontent.com/shj-F115112128/SOC_Practice/main/Upload/image/axi_topology.drawio.png) ／
+原始檔：[Upload/axi_topology.drawio](../Upload/axi_topology.drawio)
 
 ## 1. AXI Slave Wrapper FSM（UART 暫存器檔）
 
 Write 跟 read 兩條 channel FSM 畫在同一張圖裡：
 
-圖：[../diagrams/axi_slave_fsm.drawio](../diagrams/axi_slave_fsm.drawio)（write 路徑的 WVALID
+![AXI Slave Wrapper FSM](../Upload/image/axi_slave_fsm.drawio.png)
+🔍 [看大圖](https://raw.githubusercontent.com/shj-F115112128/SOC_Practice/main/Upload/image/axi_slave_fsm.drawio.png) ／
+原始檔：[Upload/axi_slave_fsm.drawio](../Upload/axi_slave_fsm.drawio)（write 路徑的 WVALID
 握手跟寫入暫存器併在同一個 `WDATA→RESP` 轉換裡，沒有另外畫一個 `WRITE_REG` 狀態）
 
 ## 2. AXI Master Wrapper FSM（UART 內部 DMA）
@@ -23,7 +27,9 @@ Write 與 read 兩條 DMA 路徑是各自獨立的狀態機 — DMA 引擎可以
 
 write（RX FIFO → 記憶體）跟 read（記憶體 → TX FIFO）兩條 DMA 路徑一樣畫在同一張圖：
 
-圖：[../diagrams/axi_master_fsm.drawio](../diagrams/axi_master_fsm.drawio)
+![AXI Master (DMA) Wrapper FSM](../Upload/image/axi_master_fsm.drawio.png)
+🔍 [看大圖](https://raw.githubusercontent.com/shj-F115112128/SOC_Practice/main/Upload/image/axi_master_fsm.drawio.png) ／
+原始檔：[Upload/axi_master_fsm.drawio](../Upload/axi_master_fsm.drawio)
 
 ## 多 Master / 多 Slave 補充說明
 

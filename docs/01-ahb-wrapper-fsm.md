@@ -13,7 +13,9 @@ slave），中間需要一個 **arbiter（仲裁器）** 與 **address decoder�
 
 ## 系統拓樸
 
-圖：[../diagrams/ahb_topology.drawio](../diagrams/ahb_topology.drawio)（直接點開，GitHub 會原生渲染）
+![AHB 系統拓樸](../Upload/image/ahb_topology.drawio.png)
+🔍 [看大圖](https://raw.githubusercontent.com/shj-F115112128/SOC_Practice/main/Upload/image/ahb_topology.drawio.png) ／
+原始檔：[Upload/ahb_topology.drawio](../Upload/ahb_topology.drawio)
 
 ## 1. AHB Slave Wrapper FSM（UART 暫存器檔）
 
@@ -22,14 +24,18 @@ slave），中間需要一個 **arbiter（仲裁器）** 與 **address decoder�
 （例如讀取時 RX FIFO 是空的、或寫入時 TX FIFO 滿了）就插入 `WAIT`，非法存取則回應兩個 cycle 的
 `ERROR`。
 
-圖：[../diagrams/ahb_slave_fsm.drawio](../diagrams/ahb_slave_fsm.drawio)
+![AHB Slave Wrapper FSM](../Upload/image/ahb_slave_fsm.drawio.png)
+🔍 [看大圖](https://raw.githubusercontent.com/shj-F115112128/SOC_Practice/main/Upload/image/ahb_slave_fsm.drawio.png) ／
+原始檔：[Upload/ahb_slave_fsm.drawio](../Upload/ahb_slave_fsm.drawio)
 
 ## 2. AHB Master Wrapper FSM（UART 內部 DMA）
 
 由 UART 的 FIFO 門檻值觸發（RX 半滿 → burst 寫入記憶體；TX 低於門檻 → burst 從記憶體讀取）。
 在驅動任何位址階段之前，必須先向 arbiter 要求匯流排。
 
-圖：[../diagrams/ahb_master_fsm.drawio](../diagrams/ahb_master_fsm.drawio)（SEQ 狀態的自迴圈已把
+![AHB Master (DMA) Wrapper FSM](../Upload/image/ahb_master_fsm.drawio.png)
+🔍 [看大圖](https://raw.githubusercontent.com/shj-F115112128/SOC_Practice/main/Upload/image/ahb_master_fsm.drawio.png) ／
+原始檔：[Upload/ahb_master_fsm.drawio](../Upload/ahb_master_fsm.drawio)（SEQ 狀態的自迴圈已把
 「FIFO 未 ready 時插入 BUSY 拍」併進去，不另外畫成一個狀態）
 
 ## 3. Arbiter FSM（支援多 Master）
@@ -38,7 +44,9 @@ slave），中間需要一個 **arbiter（仲裁器）** 與 **address decoder�
 傳輸邊界切換（`HREADY=1` 且不在 `SEQ` burst 中途，也就是 `HBURST`/`HTRANS` 顯示最後一拍，或該
 master 自行解除請求）。
 
-圖：[../diagrams/ahb_arbiter_fsm.drawio](../diagrams/ahb_arbiter_fsm.drawio)
+![AHB Arbiter FSM](../Upload/image/ahb_arbiter_fsm.drawio.png)
+🔍 [看大圖](https://raw.githubusercontent.com/shj-F115112128/SOC_Practice/main/Upload/image/ahb_arbiter_fsm.drawio.png) ／
+原始檔：[Upload/ahb_arbiter_fsm.drawio](../Upload/ahb_arbiter_fsm.drawio)
 
 ## 多 Slave 補充說明
 

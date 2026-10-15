@@ -5,7 +5,9 @@
 情境：CPU 設定 UART 的封包起始/結束位址，收到一筆 RX 資料後由 DMA 搬到記憶體，最後 CPU 收到中斷
 並讀回狀態與資料。
 
-圖：[../diagrams/ahb_msc.drawio](../diagrams/ahb_msc.drawio)
+![MSC - AHB](../Upload/image/ahb_msc.drawio.png)
+🔍 [看大圖](https://raw.githubusercontent.com/shj-F115112128/SOC_Practice/main/Upload/image/ahb_msc.drawio.png) ／
+原始檔：[Upload/ahb_msc.drawio](../Upload/ahb_msc.drawio)
 
 ## 四個階段
 

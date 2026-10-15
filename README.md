@@ -17,8 +17,9 @@ AMBA SoC 課程作業：
 | [docs/04-msc-axi.md](docs/04-msc-axi.md) | 同樣情境在 AXI 5 個 channel 上重畫，凸顯 outstanding/並行交易 |
 | [docs/05-rtl-simulation.md](docs/05-rtl-simulation.md) | **Bonus：** AHB、AXI-Lite slave wrapper FSM 的 VHDL RTL 與自我檢查 testbench（GHDL） |
 
-圖都放在 [`diagrams/`](diagrams/) 資料夾，用 draw.io 畫、存成 `.drawio`，在 GitHub 上點開檔案
-就能直接看；各篇 doc 裡用連結指過去，沒有把圖直接嵌在 Markdown 裡。
+> 圖都用 [draw.io](https://www.diagrams.net/) 畫，原始 `.drawio` 檔放在 [`Upload/`](Upload/)，
+> 匯出的 PNG 放在 [`Upload/image/`](Upload/image/) 並直接嵌在各篇 doc 裡；圖說下方都附了
+> 「🔍 看大圖」連結，點開是原始解析度的圖檔，也連到可編輯的 `.drawio` 原始檔。
 
 ## 一些筆記
 
