@@ -1,9 +1,16 @@
--- Minimal AXI4-Lite memory slave used as the DMA write-burst's target /
--- CPU's read-back target for the system-level AXI MSC testbench (sim-only
--- BFM, same role as rtl/ahb_mem_slave_bfm.vhd -- see docs/02-axi-wrapper-fsm.md
--- "多 Master / 多 Slave 補充說明"). Write/read FSMs mirror
--- axi_lite_uart_slave_wrapper's channel FSMs exactly, minus the register
--- busy/wait-state behavior (always ready), and OKAY-only response.
+-- Minimal memory slave used as the DMA write-burst's target / CPU's
+-- read-back target for the system-level AXI MSC testbench (sim-only BFM,
+-- same role as rtl/ahb_mem_slave_bfm.vhd -- see docs/02-axi-wrapper-fsm.md
+-- "多 Master / 多 Slave 補充說明").
+--
+-- Write side is real AXI4 (accepts a WLAST-terminated INCR burst from
+-- axi_uart_master_wrapper, one word per beat, auto-incrementing the
+-- internal write address each accepted beat -- AWLEN/AWBURST themselves
+-- aren't needed here since WLAST alone is sufficient to terminate the
+-- burst). Read side stays AXI4-Lite (single beat per transaction) since
+-- the CPU's phase-D readback just issues BURST_LEN independent reads --
+-- see docs/04-msc-axi.md's own note that only the write side needs real
+-- burst semantics. OKAY-only response on both.
 
 library ieee;
 use ieee.std_logic_1164.all;
@@ -22,6 +29,7 @@ entity axi_mem_slave_bfm is
         awready : out std_logic;
         wvalid  : in  std_logic;
         wdata   : in  std_logic_vector(31 downto 0);
+        wlast   : in  std_logic;
         wready  : out std_logic;
         bvalid  : out std_logic;
         bresp   : out std_logic_vector(1 downto 0);
@@ -46,8 +54,8 @@ architecture bfm of axi_mem_slave_bfm is
     signal wstate, wnext : wstate_t;
     signal rstate, rnext : rstate_t;
 
-    signal awaddr_q : std_logic_vector(31 downto 0);
-    signal araddr_q : std_logic_vector(31 downto 0);
+    signal wr_waddr  : unsigned(ADDR_BITS - 1 downto 0); -- current beat's word index
+    signal araddr_q  : std_logic_vector(31 downto 0);
 
     signal awready_i, wready_i, bvalid_i : std_logic;
     signal arready_i, rvalid_i           : std_logic;
@@ -57,24 +65,25 @@ architecture bfm of axi_mem_slave_bfm is
 
 begin
 
-    -- ---------------- write address + data + response ----------------
+    -- ---------------- write address + burst data + response ----------------
     process (aclk, aresetn)
     begin
         if aresetn = '0' then
             wstate   <= WS_IDLE;
-            awaddr_q <= (others => '0');
+            wr_waddr <= (others => '0');
         elsif rising_edge(aclk) then
             wstate <= wnext;
             if wstate = WS_IDLE and awvalid = '1' and awready_i = '1' then
-                awaddr_q <= awaddr;
+                wr_waddr <= unsigned(awaddr(ADDR_BITS + 1 downto 2));
             end if;
             if wstate = WS_WDATA and wvalid = '1' and wready_i = '1' then
-                ram(to_integer(unsigned(awaddr_q(ADDR_BITS + 1 downto 2)))) <= wdata;
+                ram(to_integer(wr_waddr)) <= wdata;
+                wr_waddr <= wr_waddr + 1;
             end if;
         end if;
     end process;
 
-    process (wstate, awvalid, wvalid, bready)
+    process (wstate, awvalid, wvalid, wlast, bready)
     begin
         wnext     <= wstate;
         awready_i <= '0';
@@ -88,7 +97,7 @@ begin
                 end if;
             when WS_WDATA =>
                 wready_i <= '1';
-                if wvalid = '1' then
+                if wvalid = '1' and wlast = '1' then
                     wnext <= WS_RESP;
                 end if;
             when WS_RESP =>
@@ -104,7 +113,7 @@ begin
     bvalid  <= bvalid_i;
     bresp   <= RESP_OKAY;
 
-    -- ---------------- read address + data ----------------
+    -- ---------------- read address + data (AXI4-Lite, single beat) ----------------
     process (aclk, aresetn)
     begin
         if aresetn = '0' then

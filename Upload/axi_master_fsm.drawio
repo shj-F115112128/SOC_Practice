@@ -5,8 +5,8 @@
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
 
-        <mxCell id="wtitle" value="Write 路徑（RX FIFO → 記憶體）" style="text;html=1;fontStyle=1;fontSize=15;align=left;" vertex="1" parent="1">
-          <mxGeometry x="40" y="40" width="300" height="30" as="geometry" />
+        <mxCell id="wtitle" value="Write 路徑（RX FIFO → 記憶體）－對應 rtl/axi_uart_master_wrapper.vhd，46/46 測試通過" style="text;html=1;fontStyle=1;fontSize=15;align=left;fontColor=#1F7A54;" vertex="1" parent="1">
+          <mxGeometry x="40" y="40" width="820" height="30" as="geometry" />
         </mxCell>
         <mxCell id="widle" value="IDLE" style="ellipse;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#999999;fontSize=14;fontStyle=1;" vertex="1" parent="1">
           <mxGeometry x="92.0" y="142.0" width="116.0" height="116.0" as="geometry" />
@@ -47,8 +47,8 @@
           </mxGeometry>
         </mxCell>
 
-        <mxCell id="rtitle" value="Read 路徑（記憶體 → TX FIFO）" style="text;html=1;fontStyle=1;fontSize=15;align=left;" vertex="1" parent="1">
-          <mxGeometry x="40" y="340" width="300" height="30" as="geometry" />
+        <mxCell id="rtitle" value="Read 路徑（記憶體 → TX FIFO）－概念設計，未刻成 RTL／未在 testbench 驗證" style="text;html=1;fontStyle=1;fontSize=15;align=left;fontColor=#884400;" vertex="1" parent="1">
+          <mxGeometry x="40" y="340" width="820" height="30" as="geometry" />
         </mxCell>
         <mxCell id="ridle" value="IDLE" style="ellipse;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#999999;fontSize=14;fontStyle=1;" vertex="1" parent="1">
           <mxGeometry x="92.0" y="502.0" width="116.0" height="116.0" as="geometry" />

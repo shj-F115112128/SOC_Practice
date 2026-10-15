@@ -24,10 +24,14 @@ arbiter，兜起來跑完整的 MSC）：
 - `rtl/ahb_mem_slave_bfm.vhd` — DMA burst 目標 + CPU 讀回用的簡化記憶體 slave（純模擬用，不是
   真的要合成的記憶體控制器，見 01 文件最後一節）。
 - `rtl/axi_uart_master_wrapper.vhd` — AXI master/DMA wrapper FSM（只做 write 路徑，對稱的 read
-  路徑跟 01/02 文件一樣沒另外畫）：`IDLE → AW → W → B* → DONE → IDLE`，用 `BURST_LEN` 個獨立的
-  AXI4-Lite write transaction 模擬 burst（AXI4-Lite 協定本身沒有 burst，所以用連續幾個單筆
-  transaction 代表）。
-- `rtl/axi_mem_slave_bfm.vhd` — 同上，AXI4-Lite 版。
+  路徑只有 `Upload/axi_master_fsm.drawio` 上的概念設計，沒有刻成 RTL——要做到跟 write 路徑一樣
+  完整，還需要一個目前專案裡完全沒有的「TX FIFO 門檻觸發」機制，AHB 版同樣沒做這塊）：
+  `IDLE → AW → W{WLAST} → BWAIT → IDLE`，**真正的 AXI4 INCR burst**（一次 `AWVALID`+`AWLEN`+
+  `AWBURST` 帶出整段傳輸，`BURST_LEN` 拍 `W` 用 `WLAST` 標最後一拍，一個 `BVALID` 收尾），不是
+  AXI4-Lite 的「每拍各自一組 AW/W/B」。
+- `rtl/axi_mem_slave_bfm.vhd` — write 側配合升級成能收真正的 AXI4 burst（`WLAST` 結束，內部位址
+  自動遞增）；read 側（CPU phase D 讀回）維持 AXI4-Lite 單拍，因為 CPU 本來就是發
+  `BURST_LEN` 次各自獨立的讀取，不需要真的 burst。
 - AXI 版不需要另外的 arbiter RTL：CPU 跟 DMA 各自用自己獨立的 channel 直接接到各自要存取的
   slave，沒有共享匯流排的仲裁問題（見 02 文件最後一節）。
 
@@ -229,3 +233,28 @@ testbench 原本是直接等一個內部訊號（`dma_consume`/`dma_done_set` �
 被限定成 RXDATA-only，兩者同名但語意不同。`commit_read='1' and addr=ADDR_STATUS` 這個條件因此
 永遠不會成立。修法是另外加一個 `read_ok`（不限位址、純粹「這次讀取成功了」）給 `dma_done` 的
 清除邏輯用，`commit_read` 維持原本 RXDATA-only 的語意給 `rx_ready` 用，兩個訊號分開、不要混用。
+
+### 再檢查一輪：FSM 圖（不只 MSC chart）跟 RTL 有沒有對上
+
+補完 IRQ 之後又被問了一次「現在完全符合了嗎」，這次除了 MSC chart 本身的文字標籤，連
+`ahb_master_fsm.drawio`、`ahb_arbiter_fsm.drawio`、`axi_master_fsm.drawio`、`axi_slave_fsm.drawio`
+這些更早、在 RTL 寫出來**之前**就畫好的狀態機圖，也重新對照了一次實際的 VHDL：
+
+- `ahb_arbiter_fsm.drawio` 的 e4（CPU→DMA）明確寫了 `!HBUSREQ0`，但 e7（DMA→CPU）卻只寫「到達
+  burst 邊界」，沒有對稱地寫出 `!HBUSREQ1`——跟目前 RTL 實際要求的「正在拿 grant 的那個 master
+  自己放掉 busreq 才換手」不完全對得上文字，容易誤讀成可以搶占。補上明確的 `!HBUSREQ1`，兩個
+  方向的寫法對稱。
+- `axi_master_fsm.drawio` 落差最大：圖上畫的是**真正的 AXI4 burst**（一次 `AWVALID`+`AWLEN`+
+  `AWBURST=INCR`，多拍 `W` 用 `WLAST` 收尾，一個 `BVALID` 結束整個傳輸）外加完整的 read-DMA
+  （TX 方向）路徑，但原本的 `axi_uart_master_wrapper.vhd` 是 AXI4-Lite、write-only、用
+  `BURST_LEN` 次各自獨立的單拍 transaction 代表 burst——跟圖完全是兩套設計。選擇「改電路配合
+  圖」：把 `axi_uart_master_wrapper.vhd` 重寫成圖上畫的 `IDLE→AW→W{WLAST 前自迴圈}→BWAIT→IDLE`，
+  `axi_mem_slave_bfm.vhd` 的 write 側也跟著升級成能收 `WLAST` 結尾的真 burst（內部位址自動遞增，
+  不用每拍收一次 `AWADDR`）。read 路徑（TX 方向）維持概念設計，圖上的標題文字改成清楚標示
+  「概念設計，未刻成 RTL／未在 testbench 驗證」，而不是悄悄留著讓人誤以為兩條路徑都做了。
+  改完後重新 46/46 全過，而且因為是真的 burst（位址只送一次），完成時間比之前快了將近 70 ns。
+- `ahb_master_fsm.drawio`、`axi_slave_fsm.drawio` 也有類似但較小的落差（前者把 RTL 的
+  `S_LAST`/`S_DONE` 兩個收尾 cycle 併成一條邊；後者畫出 `WADDR`/`RADDR`/`READ_WAIT` 這些實際
+  VHDL 裡沒有獨立存在的狀態，`READ_WAIT` 對應的「RX FIFO 空要 block」行為也早就簡化成
+  non-blocking，這點在暫存器表格已經寫過）——這兩個屬於圖比 RTL 更細的正常抽象層次落差，不是
+  邏輯錯誤，先不動。

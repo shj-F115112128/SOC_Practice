@@ -28,7 +28,7 @@
             </Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="e4" value="④ !HBUSREQ0&amp;HBUSREQ1&amp;HREADY&amp;到達 burst 邊界&#10;（DMA 在下一個安全點被搶佔）" style="curved=1;endArrow=block;html=1;strokeColor=#999999;fontSize=11;fontColor=#555555;" edge="1" parent="1" source="cpu" target="dma">
+        <mxCell id="e4" value="④ !HBUSREQ0&amp;HBUSREQ1&amp;HREADY&#10;（CPU 自行釋放後才換手）" style="curved=1;endArrow=block;html=1;strokeColor=#999999;fontSize=11;fontColor=#555555;" edge="1" parent="1" source="cpu" target="dma">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
         <mxCell id="e5" value="⑤ !HBUSREQ0&amp;!HBUSREQ1&amp;HREADY" style="curved=1;endArrow=block;html=1;strokeColor=#999999;fontSize=11;fontColor=#555555;" edge="1" parent="1" source="cpu" target="none">
@@ -47,7 +47,7 @@
             </Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="e7" value="⑦ HBUSREQ0&amp;HREADY&amp;到達 burst 邊界" style="curved=1;endArrow=block;html=1;strokeColor=#999999;fontSize=11;fontColor=#555555;" edge="1" parent="1" source="dma" target="cpu">
+        <mxCell id="e7" value="⑦ !HBUSREQ1&amp;HBUSREQ0&amp;HREADY&#10;（DMA 自行釋放後才換手）" style="curved=1;endArrow=block;html=1;strokeColor=#999999;fontSize=11;fontColor=#555555;" edge="1" parent="1" source="dma" target="cpu">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
         <mxCell id="e8" value="⑧ !HBUSREQ0&amp;!HBUSREQ1&amp;HREADY" style="curved=1;endArrow=block;html=1;strokeColor=#999999;fontSize=11;fontColor=#555555;" edge="1" parent="1" source="dma" target="none">

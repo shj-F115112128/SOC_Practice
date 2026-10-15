@@ -33,6 +33,13 @@ write（RX FIFO → 記憶體）跟 read（記憶體 → TX FIFO）兩條 DMA �
 🔍 [看大圖](https://raw.githubusercontent.com/shj-F115112128/SOC_Practice/main/Upload/image/axi_master_fsm.drawio.png) ／
 原始檔：[Upload/axi_master_fsm.drawio](../Upload/axi_master_fsm.drawio)
 
+**write 路徑是真的刻成 RTL 並驗證過的**（`rtl/axi_uart_master_wrapper.vhd`，真正的 AXI4 INCR
+burst：一次 `AWVALID`+`AWLEN`+`AWBURST=INCR` 帶出整段傳輸的基底位址跟長度，接著連續幾拍 `W`
+用 `WLAST` 標示最後一拍，最後一個 `BVALID` 結束整個 burst——不是 AXI4-Lite 的每拍各自一組
+AW/W/B）。對稱的 **read 路徑（TX 方向）目前只有這張圖的概念設計，沒有實作**：要做到跟 write
+路徑一樣完整，還需要一個目前專案裡完全沒有的「TX FIFO 門檻觸發」機制（AHB 版同樣沒做這塊，
+屬於已知、刻意縮小的範圍，見 [05-rtl-simulation.md](05-rtl-simulation.md)）。
+
 ## 多 Master / 多 Slave 補充說明
 
 AXI 沒有像 AHB `HGRANT` 那樣單一的中央 arbiter FSM。每個 slave 的 **AW** 與 **AR** channel 會在

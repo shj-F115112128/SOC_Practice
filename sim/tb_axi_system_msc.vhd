@@ -73,12 +73,15 @@ architecture sim of tb_axi_system_msc is
     signal crm_rresp   : std_logic_vector(1 downto 0);
     signal crm_rready  : std_logic := '0';
 
-    -- DMA <-> mem (write: phase B)
+    -- DMA <-> mem (write: phase B, real AXI4 INCR burst)
     signal dw_awvalid : std_logic;
     signal dw_awaddr  : std_logic_vector(31 downto 0);
+    signal dw_awlen   : std_logic_vector(7 downto 0);
+    signal dw_awburst : std_logic_vector(1 downto 0);
     signal dw_awready : std_logic;
     signal dw_wvalid  : std_logic;
     signal dw_wdata   : std_logic_vector(31 downto 0);
+    signal dw_wlast   : std_logic;
     signal dw_wready  : std_logic;
     signal dw_bvalid  : std_logic;
     signal dw_bresp   : std_logic_vector(1 downto 0);
@@ -178,8 +181,9 @@ begin
         generic map (BURST_LEN => BURST_LEN)
         port map (
             aclk => aclk, aresetn => aresetn,
-            awvalid => dw_awvalid, awaddr => dw_awaddr, awready => dw_awready,
-            wvalid => dw_wvalid, wdata => dw_wdata, wready => dw_wready,
+            awvalid => dw_awvalid, awaddr => dw_awaddr, awlen => dw_awlen,
+            awburst => dw_awburst, awready => dw_awready,
+            wvalid => dw_wvalid, wdata => dw_wdata, wlast => dw_wlast, wready => dw_wready,
             bvalid => dw_bvalid, bready => dw_bready,
             dma_base_addr => MEM_BASE,
             rx_ready_i => s_rx_ready, rx_data_i => s_rx_data,
@@ -190,7 +194,7 @@ begin
         port map (
             aclk => aclk, aresetn => aresetn,
             awvalid => dw_awvalid, awaddr => dw_awaddr, awready => dw_awready,
-            wvalid => dw_wvalid, wdata => dw_wdata, wready => dw_wready,
+            wvalid => dw_wvalid, wdata => dw_wdata, wlast => dw_wlast, wready => dw_wready,
             bvalid => dw_bvalid, bresp => dw_bresp, bready => dw_bready,
             arvalid => crm_arvalid, araddr => crm_araddr, arready => crm_arready,
             rvalid => crm_rvalid, rdata => crm_rdata, rresp => crm_rresp, rready => crm_rready

@@ -1,19 +1,23 @@
 -- AXI master wrapper around the UART SIP's internal DMA engine -- write
 -- path only (RX FIFO -> memory), per docs/02-axi-wrapper-fsm.md section 2
--- (the read-DMA path for TX is the symmetric, undrawn case, same as the
--- AHB master wrapper's scope).
+-- and Upload/axi_master_fsm.drawio (IDLE -> AW -> W{WLAST} -> BWAIT -> IDLE).
+-- (The symmetric read-DMA path for TX, also drawn on that diagram, is not
+-- implemented -- it would need a TX-FIFO-threshold abstraction that doesn't
+-- exist anywhere else in this project either, AHB side included; see
+-- docs/05-rtl-simulation.md.)
+--
+-- This is a real AXI4 INCR burst (AWLEN/AWBURST + WLAST), not AXI4-Lite --
+-- one AWVALID carries the whole transfer's base address and length, then
+-- BURST_LEN W beats stream through with WLAST marking the last one, and a
+-- single BVALID/BRESP closes the whole burst. (The CPU-facing register file
+-- in axi_lite_uart_slave_wrapper.vhd stays AXI4-Lite -- a single-register
+-- CSR interface has no reason to carry burst support -- only this
+-- DMA-to-memory path needs it, matching axi_mem_slave_bfm.vhd's write side.)
 --
 -- Trigger/handshake with axi_lite_uart_slave_wrapper is identical to the
 -- AHB side (rx_ready_i/rx_data_i, dma_consume_o, dma_done_o): once
--- BURST_LEN bytes have arrived, it issues BURST_LEN independent AXI4-Lite
--- write transactions (AXI4-Lite has no protocol-level burst -- each beat is
--- its own AW/W/B exchange) to sequential word addresses starting at
--- dma_base_addr, then pulses dma_done_o once.
---
--- One state machine, combinational outputs from current state (same style
--- as the other wrappers); AWADDR/WDATA are registered (awaddr_r/wdata_r)
--- since they must hold steady across however many cycles AWREADY/WREADY
--- each take to arrive.
+-- BURST_LEN bytes have arrived, it issues the burst, then pulses
+-- dma_done_o once BVALID arrives.
 
 library ieee;
 use ieee.std_logic_1164.all;
@@ -29,9 +33,12 @@ entity axi_uart_master_wrapper is
 
         awvalid : out std_logic;
         awaddr  : out std_logic_vector(31 downto 0);
+        awlen   : out std_logic_vector(7 downto 0);  -- AXI4: beats - 1
+        awburst : out std_logic_vector(1 downto 0);  -- "01" = INCR
         awready : in  std_logic;
         wvalid  : out std_logic;
         wdata   : out std_logic_vector(31 downto 0);
+        wlast   : out std_logic;
         wready  : in  std_logic;
         bvalid  : in  std_logic;
         bready  : out std_logic;
@@ -47,7 +54,9 @@ end entity axi_uart_master_wrapper;
 
 architecture rtl of axi_uart_master_wrapper is
 
-    type state_t is (S_IDLE, S_AW, S_W, S_B, S_DONE);
+    constant AWBURST_INCR : std_logic_vector(1 downto 0) := "01";
+
+    type state_t is (S_IDLE, S_AW, S_W, S_BWAIT);
     signal state, next_state : state_t := S_IDLE;
 
     type byte_array_t is array (0 to BURST_LEN - 1) of std_logic_vector(7 downto 0);
@@ -55,13 +64,11 @@ architecture rtl of axi_uart_master_wrapper is
     signal byte_cnt : natural range 0 to BURST_LEN := 0;
     signal beat_idx : natural range 0 to BURST_LEN := 0;
 
-    signal awaddr_r : std_logic_vector(31 downto 0);
-    signal wdata_r  : std_logic_vector(31 downto 0);
-
 begin
 
-    awaddr <= awaddr_r;
-    wdata  <= wdata_r;
+    awaddr  <= dma_base_addr;
+    awlen   <= std_logic_vector(to_unsigned(BURST_LEN - 1, 8));
+    awburst <= AWBURST_INCR;
 
     -- ---- state register + burst bookkeeping ----
     process (aclk, aresetn)
@@ -70,8 +77,6 @@ begin
             state    <= S_IDLE;
             byte_cnt <= 0;
             beat_idx <= 0;
-            awaddr_r <= (others => '0');
-            wdata_r  <= (others => '0');
             buf      <= (others => (others => '0'));
         elsif rising_edge(aclk) then
             state <= next_state;
@@ -82,22 +87,19 @@ begin
                         buf(byte_cnt) <= rx_data_i;
                         if byte_cnt = BURST_LEN - 1 then
                             byte_cnt <= 0;
-                            beat_idx <= 0;
-                            -- first beat (buf(0) was latched on an earlier
-                            -- S_IDLE iteration, not this cycle's rx_data_i)
-                            awaddr_r <= dma_base_addr;
-                            wdata_r  <= (31 downto 8 => '0') & buf(0);
                         else
                             byte_cnt <= byte_cnt + 1;
                         end if;
                     end if;
 
-                when S_B =>
-                    if bvalid = '1' and bready = '1' and beat_idx /= BURST_LEN - 1 then
+                when S_AW =>
+                    if awready = '1' then
+                        beat_idx <= 0;
+                    end if;
+
+                when S_W =>
+                    if wready = '1' and beat_idx /= BURST_LEN - 1 then
                         beat_idx <= beat_idx + 1;
-                        awaddr_r <= std_logic_vector(unsigned(dma_base_addr) +
-                                                       to_unsigned((beat_idx + 1) * 4, 32));
-                        wdata_r  <= (31 downto 8 => '0') & buf(beat_idx + 1);
                     end if;
 
                 when others =>
@@ -107,11 +109,13 @@ begin
     end process;
 
     -- ---- combinational outputs + next-state ----
-    process (state, byte_cnt, beat_idx, awready, wready, bvalid, rx_ready_i)
+    process (state, byte_cnt, beat_idx, buf, rx_ready_i, awready, wready, bvalid)
     begin
         next_state    <= state;
         awvalid       <= '0';
         wvalid        <= '0';
+        wdata         <= (others => '0');
+        wlast         <= '0';
         bready        <= '0';
         dma_consume_o <= '0';
         dma_done_o    <= '0';
@@ -133,23 +137,20 @@ begin
 
             when S_W =>
                 wvalid <= '1';
-                if wready = '1' then
-                    next_state <= S_B;
+                wdata  <= (31 downto 8 => '0') & buf(beat_idx);
+                if beat_idx = BURST_LEN - 1 then
+                    wlast <= '1';
+                end if;
+                if wready = '1' and beat_idx = BURST_LEN - 1 then
+                    next_state <= S_BWAIT;
                 end if;
 
-            when S_B =>
+            when S_BWAIT =>
                 bready <= '1';
                 if bvalid = '1' then
-                    if beat_idx = BURST_LEN - 1 then
-                        next_state <= S_DONE;
-                    else
-                        next_state <= S_AW;
-                    end if;
+                    dma_done_o <= '1';
+                    next_state <= S_IDLE;
                 end if;
-
-            when S_DONE =>
-                dma_done_o <= '1';
-                next_state <= S_IDLE;
         end case;
     end process;
 
