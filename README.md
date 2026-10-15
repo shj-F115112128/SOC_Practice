@@ -1,9 +1,8 @@
 # SoC Practice — AMBA AHB/AXI Wrapper FSM + MSC
 
-AMBA SoC 課程作業（10/15 繳交）參考解答：
+AMBA SoC 課程作業：
 
-1. 畫出 **AXI 與 AHB 的 Master / Slave wrapper 有限狀態機**，SIP 任選（這裡選用 UART，仿照
-   [opencores.org](https://opencores.org/) 上的核心風格），且需支援多 Master、多 Slave。
+1. 畫出 **AXI 與 AHB 的 Master / Slave wrapper 有限狀態機**，SIP 任選，且需支援多 Master、多 Slave。
 2. 畫出 **Message Sequence Chart (MSC)**，參與者為 `CPU (Master)` / `Mem Controller (Slave)` /
    `SIP (Master+Slave，內含 DMA)`，AHB、AXI 版本都要。
 3. **Bonus：** 第 1 題 slave wrapper FSM 的 RTL code 與模擬。
