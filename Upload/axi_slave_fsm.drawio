@@ -21,13 +21,13 @@
           <mxGeometry x="780" y="90" width="140" height="60" as="geometry" />
         </mxCell>
 
-        <mxCell id="we1" value="① AWVALID（assert AWREADY，鎖存 AWADDR）" style="endArrow=block;html=1;strokeColor=#999999;fontSize=11;fontColor=#555555;" edge="1" parent="1" source="widle" target="waddr">
+        <mxCell id="we1" value="① AWVALID（assert AWREADY，鎖存 AWADDR）" style="curved=1;endArrow=block;html=1;strokeColor=#999999;fontSize=11;fontColor=#555555;" edge="1" parent="1" source="widle" target="waddr">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="we2" value="② 握手完成" style="endArrow=block;html=1;strokeColor=#999999;fontSize=11;fontColor=#555555;" edge="1" parent="1" source="waddr" target="wdata">
+        <mxCell id="we2" value="② 握手完成" style="curved=1;endArrow=block;html=1;strokeColor=#999999;fontSize=11;fontColor=#555555;" edge="1" parent="1" source="waddr" target="wdata">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="we3" value="③ WVALID&amp;!reg_ready" style="endArrow=block;html=1;strokeColor=#999999;fontSize=11;fontColor=#555555;exitX=0.25;exitY=0;exitDx=0;exitDy=0;entryX=0.75;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="wdata" target="wdata">
+        <mxCell id="we3" value="③ WVALID&amp;!reg_ready" style="curved=1;endArrow=block;html=1;strokeColor=#999999;fontSize=11;fontColor=#555555;exitX=0.25;exitY=0;exitDx=0;exitDy=0;entryX=0.75;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="wdata" target="wdata">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
               <mxPoint x="570" y="50" />
@@ -35,10 +35,10 @@
             </Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="we4" value="④ WVALID&amp;reg_ready&#10;（套用 WSTRB，寫入暫存器）" style="endArrow=block;html=1;strokeColor=#999999;fontSize=11;fontColor=#555555;" edge="1" parent="1" source="wdata" target="resp">
+        <mxCell id="we4" value="④ WVALID&amp;reg_ready&#10;（套用 WSTRB，寫入暫存器）" style="curved=1;endArrow=block;html=1;strokeColor=#999999;fontSize=11;fontColor=#555555;" edge="1" parent="1" source="wdata" target="resp">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="we5" value="⑤ BVALID&amp;BREADY（鎖存 BRESP）" style="endArrow=block;html=1;strokeColor=#999999;fontSize=11;fontColor=#555555;" edge="1" parent="1" source="resp" target="widle">
+        <mxCell id="we5" value="⑤ BVALID&amp;BREADY（鎖存 BRESP）" style="curved=1;endArrow=block;html=1;strokeColor=#999999;fontSize=11;fontColor=#555555;" edge="1" parent="1" source="resp" target="widle">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
               <mxPoint x="850" y="200" />
@@ -63,13 +63,13 @@
           <mxGeometry x="780" y="390" width="140" height="60" as="geometry" />
         </mxCell>
 
-        <mxCell id="re1" value="① ARVALID（assert ARREADY，鎖存 ARADDR）" style="endArrow=block;html=1;strokeColor=#999999;fontSize=11;fontColor=#555555;" edge="1" parent="1" source="ridle" target="raddr">
+        <mxCell id="re1" value="① ARVALID（assert ARREADY，鎖存 ARADDR）" style="curved=1;endArrow=block;html=1;strokeColor=#999999;fontSize=11;fontColor=#555555;" edge="1" parent="1" source="ridle" target="raddr">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="re2" value="② 握手完成" style="endArrow=block;html=1;strokeColor=#999999;fontSize=11;fontColor=#555555;" edge="1" parent="1" source="raddr" target="rwait">
+        <mxCell id="re2" value="② 握手完成" style="curved=1;endArrow=block;html=1;strokeColor=#999999;fontSize=11;fontColor=#555555;" edge="1" parent="1" source="raddr" target="rwait">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="re3" value="③ !reg_ready" style="endArrow=block;html=1;strokeColor=#999999;fontSize=11;fontColor=#555555;exitX=0.25;exitY=0;exitDx=0;exitDy=0;entryX=0.75;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="rwait" target="rwait">
+        <mxCell id="re3" value="③ !reg_ready" style="curved=1;endArrow=block;html=1;strokeColor=#999999;fontSize=11;fontColor=#555555;exitX=0.25;exitY=0;exitDx=0;exitDy=0;entryX=0.75;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="rwait" target="rwait">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
               <mxPoint x="570" y="350" />
@@ -77,10 +77,10 @@
             </Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="re4" value="④ reg_ready（驅動 RDATA、RRESP=OKAY、RVALID=1）" style="endArrow=block;html=1;strokeColor=#999999;fontSize=11;fontColor=#555555;" edge="1" parent="1" source="rwait" target="rdata">
+        <mxCell id="re4" value="④ reg_ready（驅動 RDATA、RRESP=OKAY、RVALID=1）" style="curved=1;endArrow=block;html=1;strokeColor=#999999;fontSize=11;fontColor=#555555;" edge="1" parent="1" source="rwait" target="rdata">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="re5" value="⑤ RVALID&amp;RREADY（RLAST=1，單拍讀取）" style="endArrow=block;html=1;strokeColor=#999999;fontSize=11;fontColor=#555555;" edge="1" parent="1" source="rdata" target="ridle">
+        <mxCell id="re5" value="⑤ RVALID&amp;RREADY（RLAST=1，單拍讀取）" style="curved=1;endArrow=block;html=1;strokeColor=#999999;fontSize=11;fontColor=#555555;" edge="1" parent="1" source="rdata" target="ridle">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
               <mxPoint x="850" y="500" />

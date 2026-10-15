@@ -20,13 +20,13 @@
           <mxGeometry x="640" y="60" width="160" height="60" as="geometry" />
         </mxCell>
 
-        <mxCell id="e1" value="① HSEL&amp;HREADY&amp;NONSEQ" style="endArrow=block;html=1;strokeColor=#999999;fontSize=11;fontColor=#555555;" edge="1" parent="1" source="idle" target="nonseq">
+        <mxCell id="e1" value="① HSEL&amp;HREADY&amp;NONSEQ" style="curved=1;endArrow=block;html=1;strokeColor=#999999;fontSize=11;fontColor=#555555;" edge="1" parent="1" source="idle" target="nonseq">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="e2" value="② 位址合法&amp;暫存器忙碌" style="endArrow=block;html=1;strokeColor=#999999;fontSize=11;fontColor=#555555;" edge="1" parent="1" source="nonseq" target="wait">
+        <mxCell id="e2" value="② 位址合法&amp;暫存器忙碌" style="curved=1;endArrow=block;html=1;strokeColor=#999999;fontSize=11;fontColor=#555555;" edge="1" parent="1" source="nonseq" target="wait">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="e3" value="③ 仍忙碌" style="endArrow=block;html=1;strokeColor=#999999;fontSize=11;fontColor=#555555;exitX=0.25;exitY=0;exitDx=0;exitDy=0;entryX=0.75;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="wait" target="wait">
+        <mxCell id="e3" value="③ 仍忙碌" style="curved=1;endArrow=block;html=1;strokeColor=#999999;fontSize=11;fontColor=#555555;exitX=0.25;exitY=0;exitDx=0;exitDy=0;entryX=0.75;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="wait" target="wait">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
               <mxPoint x="420" y="220" />
@@ -34,31 +34,31 @@
             </Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="e4" value="④ 暫存器 ready，OKAY&#10;（下一拍若有新傳輸→NONSEQ，否則→IDLE）" style="endArrow=block;html=1;strokeColor=#999999;fontSize=11;fontColor=#555555;" edge="1" parent="1" source="wait" target="idle">
+        <mxCell id="e4" value="④ 暫存器 ready，OKAY&#10;（下一拍若有新傳輸→NONSEQ，否則→IDLE）" style="curved=1;endArrow=block;html=1;strokeColor=#999999;fontSize=11;fontColor=#555555;" edge="1" parent="1" source="wait" target="idle">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
               <mxPoint x="120" y="290" />
             </Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="e5" value="⑤ 位址合法&amp;立即 ready，OKAY&#10;（同④的下一狀態規則）" style="endArrow=block;html=1;strokeColor=#999999;fontSize=11;fontColor=#555555;" edge="1" parent="1" source="nonseq" target="idle">
+        <mxCell id="e5" value="⑤ 位址合法&amp;立即 ready，OKAY&#10;（同④的下一狀態規則）" style="curved=1;endArrow=block;html=1;strokeColor=#999999;fontSize=11;fontColor=#555555;" edge="1" parent="1" source="nonseq" target="idle">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
               <mxPoint x="220" y="30" />
             </Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="e6" value="⑥ 位址非法" style="endArrow=block;html=1;strokeColor=#999999;fontSize=11;fontColor=#555555;" edge="1" parent="1" source="nonseq" target="err1">
+        <mxCell id="e6" value="⑥ 位址非法" style="curved=1;endArrow=block;html=1;strokeColor=#999999;fontSize=11;fontColor=#555555;" edge="1" parent="1" source="nonseq" target="err1">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
               <mxPoint x="720" y="90" />
             </Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="e7" value="⑦ 第 2 個 error cycle" style="endArrow=block;html=1;strokeColor=#999999;fontSize=11;fontColor=#555555;" edge="1" parent="1" source="err1" target="err2">
+        <mxCell id="e7" value="⑦ 第 2 個 error cycle" style="curved=1;endArrow=block;html=1;strokeColor=#999999;fontSize=11;fontColor=#555555;" edge="1" parent="1" source="err1" target="err2">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="e8" value="⑧ 恢復（規則同④）" style="endArrow=block;html=1;strokeColor=#999999;fontSize=11;fontColor=#555555;" edge="1" parent="1" source="err2" target="idle">
+        <mxCell id="e8" value="⑧ 恢復（規則同④）" style="curved=1;endArrow=block;html=1;strokeColor=#999999;fontSize=11;fontColor=#555555;" edge="1" parent="1" source="err2" target="idle">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
       </root>

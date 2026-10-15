@@ -21,13 +21,13 @@
           <mxGeometry x="760" y="90" width="140" height="60" as="geometry" />
         </mxCell>
 
-        <mxCell id="we1" value="① 觸發 RX 門檻（assert AWVALID/AWADDR/AWLEN/AWBURST=INCR）" style="endArrow=block;html=1;strokeColor=#999999;fontSize=11;fontColor=#555555;" edge="1" parent="1" source="widle" target="aw">
+        <mxCell id="we1" value="① 觸發 RX 門檻（assert AWVALID/AWADDR/AWLEN/AWBURST=INCR）" style="curved=1;endArrow=block;html=1;strokeColor=#999999;fontSize=11;fontColor=#555555;" edge="1" parent="1" source="widle" target="aw">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="we2" value="② AWVALID&amp;AWREADY 握手" style="endArrow=block;html=1;strokeColor=#999999;fontSize=11;fontColor=#555555;" edge="1" parent="1" source="aw" target="w">
+        <mxCell id="we2" value="② AWVALID&amp;AWREADY 握手" style="curved=1;endArrow=block;html=1;strokeColor=#999999;fontSize=11;fontColor=#555555;" edge="1" parent="1" source="aw" target="w">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="we3" value="③ WVALID&amp;WREADY&amp;!WLAST" style="endArrow=block;html=1;strokeColor=#999999;fontSize=11;fontColor=#555555;exitX=0.25;exitY=0;exitDx=0;exitDy=0;entryX=0.75;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="w" target="w">
+        <mxCell id="we3" value="③ WVALID&amp;WREADY&amp;!WLAST" style="curved=1;endArrow=block;html=1;strokeColor=#999999;fontSize=11;fontColor=#555555;exitX=0.25;exitY=0;exitDx=0;exitDy=0;entryX=0.75;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="w" target="w">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
               <mxPoint x="570" y="50" />
@@ -35,10 +35,10 @@
             </Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="we4" value="④ WVALID&amp;WREADY&amp;WLAST" style="endArrow=block;html=1;strokeColor=#999999;fontSize=11;fontColor=#555555;" edge="1" parent="1" source="w" target="bwait">
+        <mxCell id="we4" value="④ WVALID&amp;WREADY&amp;WLAST" style="curved=1;endArrow=block;html=1;strokeColor=#999999;fontSize=11;fontColor=#555555;" edge="1" parent="1" source="w" target="bwait">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="we5" value="⑤ BVALID&amp;BREADY&#10;（OKAY：清除 RX 旗標；SLVERR：設定錯誤狀態）" style="endArrow=block;html=1;strokeColor=#999999;fontSize=11;fontColor=#555555;" edge="1" parent="1" source="bwait" target="widle">
+        <mxCell id="we5" value="⑤ BVALID&amp;BREADY&#10;（OKAY：清除 RX 旗標；SLVERR：設定錯誤狀態）" style="curved=1;endArrow=block;html=1;strokeColor=#999999;fontSize=11;fontColor=#555555;" edge="1" parent="1" source="bwait" target="widle">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
               <mxPoint x="830" y="200" />
@@ -60,13 +60,13 @@
           <mxGeometry x="520" y="390" width="140" height="60" as="geometry" />
         </mxCell>
 
-        <mxCell id="re1" value="① TX FIFO 低於門檻（assert ARVALID/ARADDR/ARLEN/ARBURST=INCR）" style="endArrow=block;html=1;strokeColor=#999999;fontSize=11;fontColor=#555555;" edge="1" parent="1" source="ridle" target="ar">
+        <mxCell id="re1" value="① TX FIFO 低於門檻（assert ARVALID/ARADDR/ARLEN/ARBURST=INCR）" style="curved=1;endArrow=block;html=1;strokeColor=#999999;fontSize=11;fontColor=#555555;" edge="1" parent="1" source="ridle" target="ar">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="re2" value="② ARVALID&amp;ARREADY 握手" style="endArrow=block;html=1;strokeColor=#999999;fontSize=11;fontColor=#555555;" edge="1" parent="1" source="ar" target="r">
+        <mxCell id="re2" value="② ARVALID&amp;ARREADY 握手" style="curved=1;endArrow=block;html=1;strokeColor=#999999;fontSize=11;fontColor=#555555;" edge="1" parent="1" source="ar" target="r">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="re3" value="③ RVALID&amp;RREADY&amp;!RLAST" style="endArrow=block;html=1;strokeColor=#999999;fontSize=11;fontColor=#555555;exitX=0.25;exitY=0;exitDx=0;exitDy=0;entryX=0.75;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="r" target="r">
+        <mxCell id="re3" value="③ RVALID&amp;RREADY&amp;!RLAST" style="curved=1;endArrow=block;html=1;strokeColor=#999999;fontSize=11;fontColor=#555555;exitX=0.25;exitY=0;exitDx=0;exitDy=0;entryX=0.75;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="r" target="r">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
               <mxPoint x="570" y="350" />
@@ -74,7 +74,7 @@
             </Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="re4" value="④ RVALID&amp;RREADY&amp;RLAST&#10;（檢查 RRESP；SLVERR 中止剩餘推入）" style="endArrow=block;html=1;strokeColor=#999999;fontSize=11;fontColor=#555555;" edge="1" parent="1" source="r" target="ridle">
+        <mxCell id="re4" value="④ RVALID&amp;RREADY&amp;RLAST&#10;（檢查 RRESP；SLVERR 中止剩餘推入）" style="curved=1;endArrow=block;html=1;strokeColor=#999999;fontSize=11;fontColor=#555555;" edge="1" parent="1" source="r" target="ridle">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
               <mxPoint x="590" y="500" />

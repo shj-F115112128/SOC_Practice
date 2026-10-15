@@ -19,16 +19,16 @@
         <mxCell id="uartreg" value="UART Reg File&#10;(Slave 1)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#999999;fontSize=13;fontStyle=1;" vertex="1" parent="1">
           <mxGeometry x="640" y="160" width="140" height="60" as="geometry" />
         </mxCell>
-        <mxCell id="e1" style="endArrow=block;html=1;strokeColor=#999999;" edge="1" parent="1" source="cpu" target="xbar">
+        <mxCell id="e1" style="curved=1;endArrow=block;html=1;strokeColor=#999999;" edge="1" parent="1" source="cpu" target="xbar">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="e2" style="endArrow=block;html=1;strokeColor=#999999;" edge="1" parent="1" source="dma" target="xbar">
+        <mxCell id="e2" style="curved=1;endArrow=block;html=1;strokeColor=#999999;" edge="1" parent="1" source="dma" target="xbar">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="e3" value="AW/W/B, AR/R（各自獨立 channel）" style="endArrow=block;html=1;strokeColor=#999999;fontSize=11;fontColor=#555555;" edge="1" parent="1" source="xbar" target="mem">
+        <mxCell id="e3" value="AW/W/B, AR/R（各自獨立 channel）" style="curved=1;endArrow=block;html=1;strokeColor=#999999;fontSize=11;fontColor=#555555;" edge="1" parent="1" source="xbar" target="mem">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="e4" style="endArrow=block;html=1;strokeColor=#999999;" edge="1" parent="1" source="xbar" target="uartreg">
+        <mxCell id="e4" style="curved=1;endArrow=block;html=1;strokeColor=#999999;" edge="1" parent="1" source="xbar" target="uartreg">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
       </root>

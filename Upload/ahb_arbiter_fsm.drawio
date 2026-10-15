@@ -14,13 +14,13 @@
           <mxGeometry x="270" y="300" width="180" height="60" as="geometry" />
         </mxCell>
 
-        <mxCell id="e1" value="① HBUSREQ0&amp;HREADY" style="endArrow=block;html=1;strokeColor=#999999;fontSize=11;fontColor=#555555;" edge="1" parent="1" source="none" target="cpu">
+        <mxCell id="e1" value="① HBUSREQ0&amp;HREADY" style="curved=1;endArrow=block;html=1;strokeColor=#999999;fontSize=11;fontColor=#555555;" edge="1" parent="1" source="none" target="cpu">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="e2" value="② !HBUSREQ0&amp;HBUSREQ1&amp;HREADY" style="endArrow=block;html=1;strokeColor=#999999;fontSize=11;fontColor=#555555;" edge="1" parent="1" source="none" target="dma">
+        <mxCell id="e2" value="② !HBUSREQ0&amp;HBUSREQ1&amp;HREADY" style="curved=1;endArrow=block;html=1;strokeColor=#999999;fontSize=11;fontColor=#555555;" edge="1" parent="1" source="none" target="dma">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="e3" value="③ HBUSREQ0 持續成立" style="endArrow=block;html=1;strokeColor=#999999;fontSize=11;fontColor=#555555;exitX=0.25;exitY=0;exitDx=0;exitDy=0;entryX=0.75;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="cpu" target="cpu">
+        <mxCell id="e3" value="③ HBUSREQ0 持續成立" style="curved=1;endArrow=block;html=1;strokeColor=#999999;fontSize=11;fontColor=#555555;exitX=0.25;exitY=0;exitDx=0;exitDy=0;entryX=0.75;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="cpu" target="cpu">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
               <mxPoint x="550" y="20" />
@@ -28,17 +28,17 @@
             </Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="e4" value="④ !HBUSREQ0&amp;HBUSREQ1&amp;HREADY&amp;到達 burst 邊界&#10;（DMA 在下一個安全點被搶佔）" style="endArrow=block;html=1;strokeColor=#999999;fontSize=11;fontColor=#555555;" edge="1" parent="1" source="cpu" target="dma">
+        <mxCell id="e4" value="④ !HBUSREQ0&amp;HBUSREQ1&amp;HREADY&amp;到達 burst 邊界&#10;（DMA 在下一個安全點被搶佔）" style="curved=1;endArrow=block;html=1;strokeColor=#999999;fontSize=11;fontColor=#555555;" edge="1" parent="1" source="cpu" target="dma">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="e5" value="⑤ !HBUSREQ0&amp;!HBUSREQ1&amp;HREADY" style="endArrow=block;html=1;strokeColor=#999999;fontSize=11;fontColor=#555555;" edge="1" parent="1" source="cpu" target="none">
+        <mxCell id="e5" value="⑤ !HBUSREQ0&amp;!HBUSREQ1&amp;HREADY" style="curved=1;endArrow=block;html=1;strokeColor=#999999;fontSize=11;fontColor=#555555;" edge="1" parent="1" source="cpu" target="none">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
               <mxPoint x="300" y="40" />
             </Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="e6" value="⑥ HBUSREQ1&amp;burst 進行中&#10;（非最後一拍）" style="endArrow=block;html=1;strokeColor=#999999;fontSize=11;fontColor=#555555;exitX=0.25;exitY=1;exitDx=0;exitDy=0;entryX=0.75;entryY=1;entryDx=0;entryDy=0;" edge="1" parent="1" source="dma" target="dma">
+        <mxCell id="e6" value="⑥ HBUSREQ1&amp;burst 進行中&#10;（非最後一拍）" style="curved=1;endArrow=block;html=1;strokeColor=#999999;fontSize=11;fontColor=#555555;exitX=0.25;exitY=1;exitDx=0;exitDy=0;entryX=0.75;entryY=1;entryDx=0;entryDy=0;" edge="1" parent="1" source="dma" target="dma">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
               <mxPoint x="320" y="400" />
@@ -46,10 +46,10 @@
             </Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="e7" value="⑦ HBUSREQ0&amp;HREADY&amp;到達 burst 邊界" style="endArrow=block;html=1;strokeColor=#999999;fontSize=11;fontColor=#555555;" edge="1" parent="1" source="dma" target="cpu">
+        <mxCell id="e7" value="⑦ HBUSREQ0&amp;HREADY&amp;到達 burst 邊界" style="curved=1;endArrow=block;html=1;strokeColor=#999999;fontSize=11;fontColor=#555555;" edge="1" parent="1" source="dma" target="cpu">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="e8" value="⑧ !HBUSREQ0&amp;!HBUSREQ1&amp;HREADY" style="endArrow=block;html=1;strokeColor=#999999;fontSize=11;fontColor=#555555;" edge="1" parent="1" source="dma" target="none">
+        <mxCell id="e8" value="⑧ !HBUSREQ0&amp;!HBUSREQ1&amp;HREADY" style="curved=1;endArrow=block;html=1;strokeColor=#999999;fontSize=11;fontColor=#555555;" edge="1" parent="1" source="dma" target="none">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
       </root>
