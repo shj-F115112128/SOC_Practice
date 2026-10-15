@@ -1,0 +1,43 @@
+<mxfile host="app.diagrams.net" version="24.0.0">
+  <diagram id="ahbtopo001" name="AHB Topology">
+    <mxGraphModel dx="900" dy="600" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="900" pageHeight="500" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="cpu" value="CPU&#10;(Master 0)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#999999;fontSize=13;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="40" width="140" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="dma" value="SIP-DMA&#10;(Master 1，位於 UART wrapper 內)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#999999;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="160" width="140" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="arb" value="Arbiter + Address Mux&#10;(HMASTER 選擇)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E8F8F0;strokeColor=#2E9E6C;fontColor=#1F7A54;fontSize=13;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="280" y="100" width="160" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="dec" value="Address Decoder" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#999999;fontSize=13;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="520" y="100" width="150" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="mem" value="Mem Controller&#10;(Slave 0)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#999999;fontSize=13;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="740" y="40" width="140" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="uartreg" value="UART Reg File&#10;(Slave 1)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#999999;fontSize=13;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="740" y="160" width="140" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="e1" style="endArrow=block;html=1;strokeColor=#999999;" edge="1" parent="1" source="cpu" target="arb">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e2" style="endArrow=block;html=1;strokeColor=#999999;" edge="1" parent="1" source="dma" target="arb">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e3" value="HADDR/HWDATA/HTRANS" style="endArrow=block;html=1;strokeColor=#999999;fontSize=11;fontColor=#555555;" edge="1" parent="1" source="arb" target="dec">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e4" style="endArrow=block;html=1;strokeColor=#999999;" edge="1" parent="1" source="dec" target="mem">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e5" style="endArrow=block;html=1;strokeColor=#999999;" edge="1" parent="1" source="dec" target="uartreg">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

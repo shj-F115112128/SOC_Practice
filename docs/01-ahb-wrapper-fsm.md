@@ -13,15 +13,7 @@ slave），中間需要一個 **arbiter（仲裁器）** 與 **address decoder�
 
 ## 系統拓樸
 
-```mermaid
-flowchart LR
-    CPU["CPU (Master 0)"] --> ARB
-    DMA["SIP-DMA (Master 1)\n位於 UART wrapper 內"] --> ARB
-    ARB["Arbiter + Address Mux\n（HMASTER 選擇）"] --> BUS["AHB Bus"]
-    BUS --> DEC["Address Decoder"]
-    DEC --> MEM["Mem Controller (Slave 0)"]
-    DEC --> UARTREG["UART Reg File (Slave 1)"]
-```
+圖：[../diagrams/ahb_topology.drawio](../diagrams/ahb_topology.drawio)（直接點開，GitHub 會原生渲染）
 
 ## 1. AHB Slave Wrapper FSM（UART 暫存器檔）
 
@@ -30,44 +22,15 @@ flowchart LR
 （例如讀取時 RX FIFO 是空的、或寫入時 TX FIFO 滿了）就插入 `WAIT`，非法存取則回應兩個 cycle 的
 `ERROR`。
 
-```mermaid
-stateDiagram-v2
-    [*] --> IDLE
-    IDLE --> NONSEQ: HSEL & HREADY & HTRANS=NONSEQ
-    NONSEQ --> NONSEQ: HSEL & HREADY & HTRANS=NONSEQ（背靠背的單次傳輸）
-    NONSEQ --> OKAY: 位址合法 & 暫存器 ready\n（HREADYOUT=1，驅動 HRDATA / 鎖存 HWDATA）
-    NONSEQ --> WAIT: 位址合法 & 暫存器忙碌\n（HREADYOUT=0）
-    NONSEQ --> ERR1: 位址非法或寫入不合法\n（HREADYOUT=0,HRESP=ERROR）
-    WAIT --> WAIT: 暫存器仍忙碌（RX FIFO 空 / TX FIFO 滿）
-    WAIT --> OKAY: 暫存器已 ready（HREADYOUT=1,HRESP=OKAY）
-    WAIT --> ERR1: timeout / 非法
-    OKAY --> IDLE: 下一拍 HTRANS=IDLE
-    OKAY --> NONSEQ: 下一筆傳輸被 pipeline 接上
-    ERR1 --> ERR2: HREADYOUT=0,HRESP=ERROR（第 2 個 cycle）
-    ERR2 --> IDLE: HREADYOUT=1
-```
+圖：[../diagrams/ahb_slave_fsm.drawio](../diagrams/ahb_slave_fsm.drawio)
 
 ## 2. AHB Master Wrapper FSM（UART 內部 DMA）
 
 由 UART 的 FIFO 門檻值觸發（RX 半滿 → burst 寫入記憶體；TX 低於門檻 → burst 從記憶體讀取）。
 在驅動任何位址階段之前，必須先向 arbiter 要求匯流排。
 
-```mermaid
-stateDiagram-v2
-    [*] --> IDLE
-    IDLE --> REQ: 觸發 RX 門檻 / TX 需要補資料\n（assert HBUSREQx）
-    REQ --> REQ: HGRANTx=0（仍在仲裁中）
-    REQ --> NONSEQ: HGRANTx=1 & HREADY\n（驅動 HADDR、HTRANS=NONSEQ、HBURST=INCRx）
-    NONSEQ --> SEQ: HREADY=1（第一拍被接受）
-    SEQ --> SEQ: HREADY=1 & 還有剩餘拍數\n（HTRANS=SEQ）
-    SEQ --> BUSY: HREADY=1 但 DMA FIFO 還沒 ready\n（HTRANS=BUSY，保持位址不變）
-    BUSY --> SEQ: FIFO 再次 ready
-    SEQ --> DONE: HREADY=1 & 最後一拍
-    SEQ --> ERR1: HRESP=ERROR\n（中止此次 burst）
-    ERR1 --> ERR2: 第 2 個 error cycle
-    ERR2 --> IDLE: 設定 UART 錯誤狀態位元，釋放 HBUSREQx
-    DONE --> IDLE: 釋放 HBUSREQx，設定 UART 完成/IRQ 狀態位元
-```
+圖：[../diagrams/ahb_master_fsm.drawio](../diagrams/ahb_master_fsm.drawio)（SEQ 狀態的自迴圈已把
+「FIFO 未 ready 時插入 BUSY 拍」併進去，不另外畫成一個狀態）
 
 ## 3. Arbiter FSM（支援多 Master）
 
@@ -75,18 +38,7 @@ stateDiagram-v2
 傳輸邊界切換（`HREADY=1` 且不在 `SEQ` burst 中途，也就是 `HBURST`/`HTRANS` 顯示最後一拍，或該
 master 自行解除請求）。
 
-```mermaid
-stateDiagram-v2
-    [*] --> GRANT_NONE
-    GRANT_NONE --> GRANT_CPU: HBUSREQ0 & HREADY
-    GRANT_NONE --> GRANT_DMA: !HBUSREQ0 & HBUSREQ1 & HREADY
-    GRANT_CPU --> GRANT_CPU: HBUSREQ0（持續保持，即使 DMA 也在請求 — CPU 優先權較高）
-    GRANT_CPU --> GRANT_DMA: !HBUSREQ0 & HBUSREQ1 & HREADY & 到達 burst 邊界
-    GRANT_CPU --> GRANT_NONE: !HBUSREQ0 & !HBUSREQ1 & HREADY
-    GRANT_DMA --> GRANT_DMA: HBUSREQ1 & burst 進行中（HBURST != SINGLE，非最後一拍）
-    GRANT_DMA --> GRANT_CPU: HBUSREQ0 & HREADY & 到達 burst 邊界\n（DMA 在下一個安全點被搶佔）
-    GRANT_DMA --> GRANT_NONE: !HBUSREQ0 & !HBUSREQ1 & HREADY
-```
+圖：[../diagrams/ahb_arbiter_fsm.drawio](../diagrams/ahb_arbiter_fsm.drawio)
 
 ## 多 Slave 補充說明
 

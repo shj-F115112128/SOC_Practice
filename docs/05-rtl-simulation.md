@@ -1,22 +1,22 @@
 # Bonus：RTL + 模擬（第 1 題 — Slave Wrapper FSM）
 
-針對 UART SIP 的暫存器檔（CTRL/STATUS/TXDATA/RXDATA），實作並模擬
+針對 UART SIP 的暫存器檔（CTRL/STATUS/TXDATA/RXDATA），實作
 [01-ahb-wrapper-fsm.md](01-ahb-wrapper-fsm.md) 與 [02-axi-wrapper-fsm.md](02-axi-wrapper-fsm.md)
-裡的 **AHB 與 AXI-Lite slave wrapper FSM**，使用 [Icarus Verilog](http://iverilog.icarus.com/)。
+裡的 **AHB 與 AXI-Lite slave wrapper FSM**，課程規定用 VHDL，模擬用 [GHDL](https://ghdl.github.io/ghdl/)。
 
 ## 範圍
 
-在範圍內（已實作 + 已模擬）：
-- `rtl/ahb_uart_slave_wrapper.v` — AHB-Lite slave wrapper FSM：
+在範圍內：
+- `rtl/ahb_uart_slave_wrapper.vhd` — AHB-Lite slave wrapper FSM：
   `IDLE → NONSEQ → {WAIT* →} OKAY → IDLE` 與 `IDLE → NONSEQ → ERR1 → ERR2 → IDLE`，含背靠背的
   pipelined 傳輸。
-- `rtl/axi_lite_uart_slave_wrapper.v` — AXI4-Lite slave wrapper：獨立的 write
+- `rtl/axi_lite_uart_slave_wrapper.vhd` — AXI4-Lite slave wrapper：獨立的 write
   (`IDLE → WADDR → WDATA{wait*} → RESP → IDLE`) 與 read (`IDLE → RADDR → RDATA → IDLE`)
   channel FSM。
 
-沒做的部分：**master/DMA wrapper FSM** 跟 **AHB arbiter FSM**，還是留在 docs 01/02 的 Mermaid
-圖那邊。要讓它們動起來還得另外寫一個記憶體端的 bus-functional model 當對手，時間抓不夠就先放
-一邊 — 這兩個暫存器檔 slave wrapper 本身就能單獨測，先把這個做完整比較實際。
+沒做的部分：**master/DMA wrapper FSM** 跟 **AHB arbiter FSM**，還是留在 docs 01/02 的圖那邊。要
+讓它們動起來還得另外寫一個記憶體端的 bus-functional model 當對手，時間抓不夠就先放一邊 —
+這兩個暫存器檔 slave wrapper 本身就能單獨測，先把這個做完整比較實際。
 
 兩個 wrapper 共用同一套簡化過的 UART 暫存器模型，行為可以直接互相對照：
 
@@ -33,7 +33,8 @@
 
 ## 怎麼跑
 
-需要 Icarus Verilog（`winget install Icarus.Verilog`，Linux 上可用 `apt install iverilog`）：
+需要 [GHDL](https://ghdl.github.io/ghdl/)（`winget install GHDL.GHDL`，Linux 上可用
+`apt install ghdl`）：
 
 ```sh
 sim/run_sims.sh
@@ -42,66 +43,23 @@ sim/run_sims.sh
 或手動：
 
 ```sh
-iverilog -g2005 -o sim/ahb_tb.vvp rtl/ahb_uart_slave_wrapper.v sim/tb_ahb_uart_slave_wrapper.v
-vvp sim/ahb_tb.vvp
+ghdl -a --std=08 rtl/ahb_uart_slave_wrapper.vhd sim/tb_ahb_uart_slave_wrapper.vhd
+ghdl -e --std=08 tb_ahb_uart_slave_wrapper
+ghdl -r --std=08 tb_ahb_uart_slave_wrapper --vcd=sim/ahb_uart_slave_wrapper.vcd
 
-iverilog -g2005 -o sim/axi_tb.vvp rtl/axi_lite_uart_slave_wrapper.v sim/tb_axi_lite_uart_slave_wrapper.v
-vvp sim/axi_tb.vvp
+ghdl -a --std=08 rtl/axi_lite_uart_slave_wrapper.vhd sim/tb_axi_lite_uart_slave_wrapper.vhd
+ghdl -e --std=08 tb_axi_lite_uart_slave_wrapper
+ghdl -r --std=08 tb_axi_lite_uart_slave_wrapper --vcd=sim/axi_lite_uart_slave_wrapper.vcd
 ```
 
-每個 testbench 都會自我檢查（每項檢查印出 `$display [PASS]/[FAIL]`，任何失敗就 `$fatal`），
-並匯出 `.vcd` 波形，想直接看 FSM 狀態轉換的話可以用 GTKWave 開。
+每個 testbench 都會自我檢查（每項檢查 `report [PASS]/[FAIL]`，有失敗就 `severity failure`），
+並匯出 `.vcd` 波形，想直接看 FSM 狀態轉換的話可以用 GTKWave 開。AXI 版用 `start_overlap` 訊號
+搭配兩個 process（`write_thread`/`read_thread`）模擬「write 被 back-pressure 時，read channel
+仍能獨立完成」這件事，對應原本 Verilog 版的 `fork`/`join`。
 
-## 結果
+## 目前狀態
 
-### AHB UART slave wrapper — `sim/tb_ahb_uart_slave_wrapper.v`
-
-涵蓋：一般的 OKAY 讀寫、背靠背的 pipelined 傳輸（`NONSEQ→NONSEQ`）、TXDATA 寫入撞上 `tx_busy`
-時插入 `WAIT`、RX 資料到達後讀取的流程，以及位址超出範圍時 2-cycle 的 `ERROR` 回應、之後恢復
-正常存取。
-
-```
-[PASS] 66000: CTRL write returns OKAY
-[PASS] 96000: CTRL read-back == 1
-[PASS] 116000: xfer1 (STATUS) completes same cycle xfer2 address phase issued
-[PASS] 116000: xfer1 STATUS resp OKAY
-[PASS] 126000: pipelined xfer2 (CTRL) read-back == 1
-[PASS] 166000: first TXDATA write OKAY, tx_busy now set
-[PASS] 196000: STATUS.tx_busy == 1 right after TXDATA write
-[PASS] 226000: second TXDATA write (into WAIT) eventually OKAY
-[PASS] 256000: TXDATA committed only after wait states cleared
-[PASS] 286000: STATUS.tx_busy == 0 after TX finished
-[PASS] 336000: STATUS.rx_ready == 1 after byte arrival
-[PASS] 366000: RXDATA read == 0xA5
-[PASS] 396000: STATUS.rx_ready == 0 after RXDATA read (cleared)
-[PASS] 446000: out-of-range address returns HRESP=ERROR
-[PASS] 476000: FSM recovers to normal OKAY access after ERROR
-
-==== AHB UART slave wrapper: 15 passed, 0 failed ====
-```
-
-### AXI-Lite UART slave wrapper — `sim/tb_axi_lite_uart_slave_wrapper.v`
-
-涵蓋跟 AHB 版一樣的情境，再加上 MSC 文件裡提到的協定差異：獨立的 `STATUS` 讀取（read
-channel）**不用等** write channel 上被 back-pressure 的 TXDATA 寫入完成就能完成（用
-`fork`/`join` 同時發出兩者）— 這在 AHB 單一共享匯流排上是做不到的。
-
-```
-[PASS] 76000: CTRL write returns OKAY
-[PASS] 106000: CTRL read-back == 1
-[PASS] 146000: first TXDATA write OKAY, tx_busy now set
-[PASS] 176000: STATUS.tx_busy == 1 right after TXDATA write
-[PASS] 216000: STATUS read (read channel) completes independently
-[PASS] 216000: second TXDATA write eventually OKAY once tx_busy clears
-[PASS] 246000: TXDATA committed only after back-pressure cleared
-[PASS] 296000: STATUS.rx_ready == 1 after byte arrival
-[PASS] 326000: RXDATA read == 0xA5
-[PASS] 356000: STATUS.rx_ready == 0 after RXDATA read (cleared)
-[PASS] 386000: out-of-range read returns RRESP=SLVERR
-[PASS] 426000: out-of-range write returns BRESP=SLVERR
-[PASS] 456000: FSM recovers to normal OKAY access after SLVERR
-
-==== AXI-Lite UART slave wrapper: 13 passed, 0 failed ====
-```
-
-兩個測試套件在 Icarus Verilog 12.0 下全部通過（28/28 項檢查）。
+這兩個 wrapper 原本是用 Verilog 寫的，邏輯在 Icarus Verilog 12.0 下對著同一組測項跑過
+28/28 全過；這次照課程規定翻成 VHDL（狀態機、暫存器模型、testbench 都是逐項對應翻譯，行為應該
+一致），但這台機器目前沒有裝 GHDL，**VHDL 版本還沒有實際跑過模擬**。等裝好模擬器會補跑一次，
+確認翻譯後一樣能通過全部測項。

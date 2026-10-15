@@ -1,52 +1,23 @@
 # Message Sequence Chart — AHB
 
 依作業要求的參與者：**CPU (Master)**、**Mem Controller (Slave)**、**SIP = UART (Master + Slave，
-內含 DMA 引擎)**。情境：CPU 設定 UART，收到完整一筆 RX 資料後由 DMA 搬到記憶體，最後 CPU 讀回
-狀態與資料。
+內含 DMA 引擎)**，圖上另外畫出 **AHB 仲裁器** 這個角色，把「誰拿到匯流排」的步驟畫明確一點。
+情境：CPU 設定 UART 的封包起始/結束位址，收到一筆 RX 資料後由 DMA 搬到記憶體，最後 CPU 收到中斷
+並讀回狀態與資料。
 
-```mermaid
-sequenceDiagram
-    participant CPU as CPU (M)
-    participant ARB as Arbiter
-    participant SIP as SIP / UART (M+S)
-    participant MEM as Mem Controller (S)
+圖：[../diagrams/ahb_msc.drawio](../diagrams/ahb_msc.drawio)
 
-    Note over CPU,SIP: 1. CPU 設定 UART（CPU=M, SIP=S）
-    CPU->>SIP: HTRANS=NONSEQ, HADDR=CTRL_REG, HWRITE=1, HWDATA=enable|dma_thresh
-    SIP-->>CPU: HREADYOUT=1, HRESP=OKAY
+## 四個階段
 
-    Note over SIP: UART 收到序列資料，RX FIFO 填到門檻值
-    SIP->>ARB: HBUSREQ1（SIP 以 Master 身份請求匯流排）
-    ARB-->>SIP: HGRANT1=1
+- **A. CPU 設定 SIP**：CPU 寫入 PKT 起始/結束位址與 CSR 啟動位元，SIP 以 OKAY 回應。
+- **B. 仲裁**：SIP 收到一筆資料後，以 Master 身份向仲裁器要求匯流排（`HBUSREQ1`），拿到
+  `HGRANT1` 才能繼續。
+- **C. AHB burst 搬資料**：SIP-DMA 把收到的資料整批 burst 寫進記憶體的收 buffer。
+- **D. 完成通知＋CPU 讀回**：SIP 發出中斷（IRQ，帶外訊號），CPU 讀 STATUS/RXDATA 取得資料
+  （對應白板上的 `eject`／`MSR`）。
 
-    Note over SIP,MEM: 2. SIP-DMA 把 RX 資料 burst 寫入記憶體（SIP=M, MEM=S）
-    SIP->>MEM: HTRANS=NONSEQ, HADDR=buf_ptr, HWRITE=1, HBURST=INCR4
-    loop 還有 3 拍
-        SIP->>MEM: HTRANS=SEQ, HADDR=buf_ptr+N, HWDATA=rx_byte[n]
-        MEM-->>SIP: HREADYOUT=1, HRESP=OKAY
-    end
-    SIP->>ARB: 解除 HBUSREQ1（burst 完成）
+B、C 兩階段都是 SIP 以 Master 身份動作，同一時間只有 CPU 或 SIP 其中一個能擁有匯流排（仲裁規則
+見 [01-ahb-wrapper-fsm.md](01-ahb-wrapper-fsm.md)），所以階段 D 要等階段 C 的 burst 結束才能開始。
 
-    Note over SIP,CPU: 3. SIP 發出中斷（IRQ，非 AHB 訊號，屬於帶外）
-    SIP-)CPU: uart_irq = 1
-
-    Note over CPU,SIP: 4. CPU 輪詢/讀取狀態（CPU=M, SIP=S）
-    CPU->>SIP: HTRANS=NONSEQ, HADDR=STATUS_REG, HWRITE=0
-    SIP-->>CPU: HREADYOUT=1, HRDATA=dma_done|rx_count
-
-    Note over CPU,MEM: 5. CPU 讀取收到的資料（CPU=M, MEM=S）
-    CPU->>MEM: HTRANS=NONSEQ, HADDR=buf_ptr, HWRITE=0
-    MEM-->>CPU: HREADYOUT=1, HRDATA=rx_byte[0]
-    loop 還有 3 拍
-        CPU->>MEM: HTRANS=SEQ, HADDR=buf_ptr+N
-        MEM-->>CPU: HRDATA=rx_byte[n]
-    end
-```
-
-## 補充說明
-
-步驟 2 的時候 SIP 自己變成 master 在搬資料，這時候匯流排是它的，CPU 要等（arbiter 見
-[01-ahb-wrapper-fsm.md](01-ahb-wrapper-fsm.md)），所以步驟 4/5 得排在 burst 結束後面。
-
-TX 方向沒有另外畫一張圖，因為形狀幾乎一樣，只是 DMA burst 變成讀記憶體（`HWRITE=0`）再丟進
-TX FIFO，其他步驟照搬就好。
+對稱的 TX 路徑（CPU 把資料寫進記憶體，SIP-DMA 再把資料 burst 讀出送出）形狀相同，只是階段 C 的
+方向反過來，這裡沒有另外畫一張圖。
