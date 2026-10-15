@@ -2,7 +2,7 @@
 
 針對 UART SIP 的暫存器檔（CTRL/STATUS/TXDATA/RXDATA），實作
 [01-ahb-wrapper-fsm.md](01-ahb-wrapper-fsm.md) 與 [02-axi-wrapper-fsm.md](02-axi-wrapper-fsm.md)
-裡的 **AHB 與 AXI-Lite slave wrapper FSM**，課程規定用 VHDL，模擬用 [GHDL](https://ghdl.github.io/ghdl/)。
+裡的 **AHB 與 AXI-Lite slave wrapper FSM**。
 
 ## 範圍
 
