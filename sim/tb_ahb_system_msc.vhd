@@ -71,6 +71,7 @@ architecture sim of tb_ahb_system_msc is
     signal s_rx_data    : std_logic_vector(7 downto 0);
     signal s_dma_consume: std_logic;
     signal s_dma_done   : std_logic;
+    signal s_irq        : std_logic; -- real IRQ output port (MSC phase D "intr")
 
     -- UART slave wrapper ports
     signal uart_hreadyout : std_logic;
@@ -219,7 +220,8 @@ begin
             rx_ready_o    => s_rx_ready,
             rx_data_o     => s_rx_data,
             dma_consume   => s_dma_consume,
-            dma_done_set  => s_dma_done
+            dma_done_set  => s_dma_done,
+            irq_o         => s_irq
         );
 
     -- ---- SIP-DMA master wrapper ----
@@ -301,14 +303,16 @@ begin
 
         check(hgrant1 = '1' or dma_hbusreq = '1', "phase B: DMA requested/was granted the bus (HBUSREQ1/HGRANT1)");
 
-        -- ==== Phase C: wait for the burst to finish (dma_done pulses once) ====
-        wait until s_dma_done = '1';
-        check(true, "phase C: SIP-DMA burst to memory completed (dma_done pulsed)");
+        -- ==== Phase C: wait for the SIP's out-of-band IRQ (real irq_o port,
+        -- not an internal probe) instead of polling STATUS ====
+        wait until s_irq = '1';
+        check(true, "phase C/D: SIP asserted IRQ (intr) after the burst completed");
 
-        -- ==== Phase D: CPU polls STATUS, then reads back what the DMA wrote ====
+        -- ==== Phase D: CPU services the IRQ by reading STATUS, then reads back what the DMA wrote ====
         cpu_read(hclk, cpu_hbusreq, hgrant0, cpu_haddr, cpu_htrans, cpu_hwrite,
                   hready_bus, hresp_bus, hrdata_bus, ADDR_STATUS, v_rdata, v_resp);
         check(v_resp = RESP_OKAY and v_rdata(2) = '1', "phase D: STATUS.dma_done == 1 after burst");
+        check(s_irq = '0', "phase D: IRQ deasserts once STATUS has been read (serviced)");
 
         for i in 0 to BURST_LEN - 1 loop
             cpu_read(hclk, cpu_hbusreq, hgrant0, cpu_haddr, cpu_htrans, cpu_hwrite,

@@ -11,14 +11,14 @@
 
 ## 四個階段
 
-- **A. CPU 設定 SIP**：CPU 透過 AW/W 寫入封包起始/結束位址與 CSR 啟動位元，SIP 以 `BRESP=OKAY`
-  回應。
-- **B. SIP-DMA 寫入記憶體**：收到資料後，SIP 以 `AWID=1` 發出 write burst，把資料搬進記憶體的
-  收 buffer。
-- **C. 中斷＋CPU 讀狀態**：SIP 發出中斷，CPU 用 `ARID=0` 的 read channel 讀 STATUS — 這一步可以
-  跟階段 B 還在進行的 write channel **同時發生**，靠 `AWID`/`ARID` 區分讀寫回應，這是 AHB 單一
-  共享匯流排做不到的。
-- **D. CPU 讀取資料**：CPU 再用 read channel 把記憶體裡的資料 burst 讀回。
+- **A. CPU 設定 SIP**：CPU 透過 AW/W 寫入 CTRL 的 enable 啟動位元，SIP 以 `BRESP=OKAY` 回應。
+- **B. SIP-DMA 寫入記憶體**：收到資料後，SIP 以 master 身份對記憶體連續發出幾次獨立的 AXI4-Lite
+  write transaction（AXI4-Lite 本身沒有 burst，這裡用連續幾筆單一 transaction 代表），把資料
+  搬進記憶體的收 buffer。
+- **C. 中斷＋CPU 讀狀態**：SIP 發出中斷，CPU 用自己獨立的 read channel 讀 STATUS — 這一步可以
+  跟階段 B 還在進行的 write channel **同時發生**，因為 write（AW/W/B）跟 read（AR/R）本來就是
+  兩組完全獨立的訊號線，不像 AHB 共用同一條位址/資料匯流排需要仲裁。
+- **D. CPU 讀取資料**：CPU 再用 read channel，向記憶體連續讀出 DMA 寫進去的資料。
 
 對稱的 TX 路徑（CPU 寫資料進記憶體，SIP-DMA 再用它的 read-DMA FSM 把資料讀出送出）跟階段 B 形狀
 相同，只是方向相反，這裡沒有另外畫一張圖。channel FSM 細節見

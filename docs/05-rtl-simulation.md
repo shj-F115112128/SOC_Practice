@@ -46,7 +46,10 @@ arbiter，兜起來跑完整的 MSC）：
 | `≥0x10` | — | — | AHB：2-cycle `HRESP=ERROR`；AXI：`BRESP`/`RRESP = SLVERR` |
 
 `rx_ready_o`/`rx_data_o`/`dma_consume`/`dma_done_set` 是兩個暫存器檔 wrapper 額外加的 hook，
-用來跟對應的 master/DMA wrapper 接起來（預設值讓舊的單獨測 testbench 不受影響）。
+用來跟對應的 master/DMA wrapper 接起來（預設值讓舊的單獨測 testbench 不受影響）。另外還加了
+`irq_o`（純組合邏輯接到內部 `dma_done`）——對照 MSC chart 畫的「SIP 發出中斷」這一步，兩個系統
+testbench 的 CPU 端現在是真的在等這個 port 變成 `'1'`（`wait until irq_o = '1'`），不是用內部
+測試訊號偷看 DMA 完成與否；STATUS 被讀過一次之後 `dma_done` 清掉，`irq_o` 也跟著降下來。
 
 ## 怎麼跑
 
@@ -127,20 +130,21 @@ Note: [PASS] FSM recovers to normal OKAY access after SLVERR                 Tim
 
 把 arbiter、兩個暫存器檔/master wrapper、記憶體 BFM 接起來，實際跑一次 03 文件畫的四個階段：
 CPU 設定 SIP（phase A）→ DMA 收滿 4 個 byte 後跟 arbiter 要匯流排（phase B，`HBUSREQ1`/
-`HGRANT1`）→ burst 寫進記憶體（phase C，`NONSEQ`+3 個 `SEQ`）→ DMA 完成、CPU 讀 `STATUS.dma_done`
-再把記憶體內容讀回來比對（phase D）。
+`HGRANT1`）→ burst 寫進記憶體（phase C，`NONSEQ`+3 個 `SEQ`）→ SIP 發 `irq_o` 中斷、CPU 讀
+`STATUS.dma_done` 再把記憶體內容讀回來比對（phase D）。
 
 ```
 Note: [PASS] phase A: CTRL write (enable) returns OKAY
 Note: [PASS] phase B: DMA requested/was granted the bus (HBUSREQ1/HGRANT1)
-Note: [PASS] phase C: SIP-DMA burst to memory completed (dma_done pulsed)
+Note: [PASS] phase C/D: SIP asserted IRQ (intr) after the burst completed
 Note: [PASS] phase D: STATUS.dma_done == 1 after burst
+Note: [PASS] phase D: IRQ deasserts once STATUS has been read (serviced)
 Note: [PASS] phase D: memory[0] == byte DMA'd by the SIP
 Note: [PASS] phase D: memory[1] == byte DMA'd by the SIP
 Note: [PASS] phase D: memory[2] == byte DMA'd by the SIP
 Note: [PASS] phase D: memory[3] == byte DMA'd by the SIP
 
-==== AHB system MSC (A/B/C/D): 8 passed, 0 failed ====
+==== AHB system MSC (A/B/C/D): 9 passed, 0 failed ====
 ```
 
 ### AXI 系統層級 MSC — `sim/tb_axi_system_msc.vhd`
@@ -151,17 +155,18 @@ phase B 的 DMA write burst**同時進行**（04 文件強調的那個 AHB 做�
 ```
 Note: [PASS] phase A: CTRL write (enable) returns OKAY
 Note: [PASS] phase C: STATUS read completes independently of the DMA write channel
-Note: [PASS] phase B: SIP-DMA write burst to memory completed (dma_done pulsed)
+Note: [PASS] phase C: SIP asserted IRQ (intr) once the write burst completed
 Note: [PASS] phase C: STATUS.dma_done == 1 after burst
+Note: [PASS] phase C: IRQ deasserts once STATUS has been read (serviced)
 Note: [PASS] phase D: memory[0] == byte DMA'd by the SIP
 Note: [PASS] phase D: memory[1] == byte DMA'd by the SIP
 Note: [PASS] phase D: memory[2] == byte DMA'd by the SIP
 Note: [PASS] phase D: memory[3] == byte DMA'd by the SIP
 
-==== AXI system MSC (A/B/C/D): 8 passed, 0 failed ====
+==== AXI system MSC (A/B/C/D): 9 passed, 0 failed ====
 ```
 
-四個 testbench 在 Vivado 2018.2 xsim 下全部通過（15+13+8+8 = 44/44 項檢查），其中暫存器檔
+四個 testbench 在 Vivado 2018.2 xsim 下全部通過（15+13+9+9 = 46/46 項檢查），其中暫存器檔
 wrapper 那兩個跟原本 Verilog 版本（Icarus Verilog 12.0 下 28/28）結果一致——時間戳記也幾乎
 完全對得上，代表翻譯過程沒有改變任何時序行為。
 
@@ -209,3 +214,18 @@ procedural assignment、沒有 VHDL 這種多重 driver 解析語意。修法是
    procedure 預期的「資料跟 `HREADYOUT=1` 同一個 cycle 就位」兜不起來。最後拆成兩條路：寫入
    維持 `pending` 保護，讀取改成直接用目前的 `addr_q` 組合邏輯算 `HRDATA`（讀到舊位址不會造成
    資料損毀，不需要這層保護）。
+
+### 後來補 IRQ port 時又遇到的一個真實問題
+
+回頭比對 MSC chart 跟實際 RTL 後，發現圖上畫的「SIP 發出中斷」這一步在電路裡從缺——兩個系統
+testbench 原本是直接等一個內部訊號（`dma_consume`/`dma_done_set` 之間的握手線）才知道 DMA 做
+完，不是真的被中斷喚醒。補上 `irq_o`（純組合邏輯接到內部 `dma_done`，CPU 讀 STATUS 清掉
+`dma_done` 後 `irq_o` 也跟著降下來）之後，AXI 版的 `irq_o` 卻卡在 `'1'` 永遠不降——查下去發現
+`axi_lite_uart_slave_wrapper.vhd` 裡原本就有的 `commit_read` 訊號，定義其實是「只在讀 RXDATA
+時才算數」（`commit_read <= '1' when (... and araddr_q(3 downto 0) = ADDR_RXDATA) else '0';`，
+拿來清 `rx_ready` 用的），不是「任何一次成功的讀取」。我幫 `dma_done` 加清除邏輯時沿用了 AHB
+版的寫法（`commit_read='1' and addr=ADDR_STATUS`），卻沒注意到這個 `commit_read` 在 AHB、AXI
+兩個檔案裡的定義範圍根本不一樣——AHB 版的 `commit_read` 本來就是「任何位址都算」，AXI 版卻早就
+被限定成 RXDATA-only，兩者同名但語意不同。`commit_read='1' and addr=ADDR_STATUS` 這個條件因此
+永遠不會成立。修法是另外加一個 `read_ok`（不限位址、純粹「這次讀取成功了」）給 `dma_done` 的
+清除邏輯用，`commit_read` 維持原本 RXDATA-only 的語意給 `rx_ready` 用，兩個訊號分開、不要混用。

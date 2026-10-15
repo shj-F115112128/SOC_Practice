@@ -17,7 +17,7 @@ AMBA SoC 課程作業：
 | [docs/02-axi-wrapper-fsm.md](docs/02-axi-wrapper-fsm.md) | AXI slave wrapper FSM（write/read channel）、AXI master wrapper FSM（DMA 讀寫）、多 Master/Slave 互連說明 |
 | [docs/03-msc-ahb.md](docs/03-msc-ahb.md) | MSC：CPU 設定 UART → UART DMA 把 RX 資料 burst 寫入記憶體 → CPU 讀回狀態與資料，AHB 版 |
 | [docs/04-msc-axi.md](docs/04-msc-axi.md) | 同樣情境在 AXI 5 個 channel 上重畫，凸顯 outstanding/並行交易 |
-| [docs/05-rtl-simulation.md](docs/05-rtl-simulation.md) | **Bonus：** AHB、AXI slave + master/DMA wrapper、arbiter、記憶體 BFM 全套 VHDL RTL 與自我檢查 testbench，Vivado 2018.2 xsim 下 44/44 全過，系統層級測試完整跑過 MSC 的 A→B→C→D |
+| [docs/05-rtl-simulation.md](docs/05-rtl-simulation.md) | **Bonus：** AHB、AXI slave + master/DMA wrapper、arbiter、記憶體 BFM 全套 VHDL RTL 與自我檢查 testbench，Vivado 2018.2 xsim 下 46/46 全過，系統層級測試完整跑過 MSC 的 A→B→C→D，含真的 IRQ port |
 
 > 圖都用 [draw.io](https://www.diagrams.net/) 畫，原始 `.drawio` 檔放在 [`Upload/`](Upload/)，
 > 匯出的 PNG 放在 [`Upload/image/`](Upload/image/) 並直接嵌在各篇 doc 裡；圖說下方都附了

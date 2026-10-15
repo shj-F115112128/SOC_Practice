@@ -89,6 +89,7 @@ architecture sim of tb_axi_system_msc is
     signal s_rx_data     : std_logic_vector(7 downto 0);
     signal s_dma_consume : std_logic;
     signal s_dma_done    : std_logic;
+    signal s_irq         : std_logic; -- real IRQ output port (MSC phase C "intr")
 
     signal rx_byte_valid : std_logic := '0';
     signal rx_byte_data  : std_logic_vector(7 downto 0) := (others => '0');
@@ -169,7 +170,8 @@ begin
             rvalid => cru_rvalid, rdata => cru_rdata, rresp => cru_rresp, rready => cru_rready,
             rx_byte_valid => rx_byte_valid, rx_byte_data => rx_byte_data,
             rx_ready_o => s_rx_ready, rx_data_o => s_rx_data,
-            dma_consume => s_dma_consume, dma_done_set => s_dma_done
+            dma_consume => s_dma_consume, dma_done_set => s_dma_done,
+            irq_o => s_irq
         );
 
     dma : entity work.axi_uart_master_wrapper
@@ -294,11 +296,13 @@ begin
         axi_read(rdu_req, rdu_addr, rdu_done, rdu_data, rdu_resp, ADDR_STATUS, v_rdata, v_resp);
         check(v_resp = RESP_OKAY, "phase C: STATUS read completes independently of the DMA write channel");
 
-        wait until s_dma_done = '1';
-        check(true, "phase B: SIP-DMA write burst to memory completed (dma_done pulsed)");
+        -- real out-of-band IRQ (irq_o port), not an internal probe
+        wait until s_irq = '1';
+        check(true, "phase C: SIP asserted IRQ (intr) once the write burst completed");
 
         axi_read(rdu_req, rdu_addr, rdu_done, rdu_data, rdu_resp, ADDR_STATUS, v_rdata, v_resp);
         check(v_resp = RESP_OKAY and v_rdata(2) = '1', "phase C: STATUS.dma_done == 1 after burst");
+        check(s_irq = '0', "phase C: IRQ deasserts once STATUS has been read (serviced)");
 
         -- ==== Phase D: CPU reads the memory contents back ====
         for i in 0 to BURST_LEN - 1 loop

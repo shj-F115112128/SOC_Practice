@@ -1,6 +1,6 @@
 <mxfile host="app.diagrams.net" version="24.0.0">
   <diagram id="ahbmsc001" name="MSC - AHB">
-    <mxGraphModel dx="1100" dy="900" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1080" pageHeight="620" math="0" shadow="0">
+    <mxGraphModel dx="1100" dy="900" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1080" pageHeight="650" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
@@ -21,25 +21,25 @@
         <mxCell id="l_cpu" style="html=1;endArrow=none;dashed=1;strokeColor=#bbbbbb;" edge="1" parent="1">
           <mxGeometry relative="1" as="geometry">
             <mxPoint x="120" y="80" as="sourcePoint" />
-            <mxPoint x="120" y="580" as="targetPoint" />
+            <mxPoint x="120" y="630" as="targetPoint" />
           </mxGeometry>
         </mxCell>
         <mxCell id="l_arb" style="html=1;endArrow=none;dashed=1;strokeColor=#bbbbbb;" edge="1" parent="1">
           <mxGeometry relative="1" as="geometry">
             <mxPoint x="380" y="80" as="sourcePoint" />
-            <mxPoint x="380" y="580" as="targetPoint" />
+            <mxPoint x="380" y="630" as="targetPoint" />
           </mxGeometry>
         </mxCell>
         <mxCell id="l_sip" style="html=1;endArrow=none;dashed=1;strokeColor=#bbbbbb;" edge="1" parent="1">
           <mxGeometry relative="1" as="geometry">
             <mxPoint x="650" y="80" as="sourcePoint" />
-            <mxPoint x="650" y="580" as="targetPoint" />
+            <mxPoint x="650" y="630" as="targetPoint" />
           </mxGeometry>
         </mxCell>
         <mxCell id="l_mem" style="html=1;endArrow=none;dashed=1;strokeColor=#bbbbbb;" edge="1" parent="1">
           <mxGeometry relative="1" as="geometry">
             <mxPoint x="940" y="80" as="sourcePoint" />
-            <mxPoint x="940" y="580" as="targetPoint" />
+            <mxPoint x="940" y="630" as="targetPoint" />
           </mxGeometry>
         </mxCell>
 
@@ -53,7 +53,7 @@
         <mxCell id="labelA" value="A&#10;CPU 設定 SIP" style="text;html=1;fontStyle=1;fontSize=13;align=left;" vertex="1" parent="1">
           <mxGeometry x="0" y="135" width="110" height="40" as="geometry" />
         </mxCell>
-        <mxCell id="a1" value="① 寫入 PKT 起始/結束位址＋CSR 啟動" style="html=1;endArrow=block;strokeColor=#666666;fontSize=11;fontColor=#444444;labelBackgroundColor=#ffffff;" edge="1" parent="1">
+        <mxCell id="a1" value="① 寫入 CTRL（enable 啟動位元）" style="html=1;endArrow=block;strokeColor=#666666;fontSize=11;fontColor=#444444;labelBackgroundColor=#ffffff;" edge="1" parent="1">
           <mxGeometry relative="1" as="geometry">
             <mxPoint x="120" y="165" as="sourcePoint" />
             <mxPoint x="650" y="165" as="targetPoint" />
@@ -128,16 +128,28 @@
             <mxPoint x="120" y="465" as="targetPoint" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="d2" value="⑧ 讀 STATUS／RXDATA（MSR，eject）" style="html=1;endArrow=block;strokeColor=#666666;fontSize=11;fontColor=#444444;labelBackgroundColor=#ffffff;" edge="1" parent="1">
+        <mxCell id="d2" value="⑧ 讀 STATUS（確認 dma_done）" style="html=1;endArrow=block;strokeColor=#666666;fontSize=11;fontColor=#444444;labelBackgroundColor=#ffffff;" edge="1" parent="1">
           <mxGeometry relative="1" as="geometry">
             <mxPoint x="120" y="500" as="sourcePoint" />
             <mxPoint x="650" y="500" as="targetPoint" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="d3" value="⑨ HRDATA（dma_done/rx_count，接著讀出資料）" style="html=1;endArrow=block;dashed=1;strokeColor=#666666;fontSize=11;fontColor=#444444;labelBackgroundColor=#ffffff;" edge="1" parent="1">
+        <mxCell id="d3" value="⑨ HRDATA（dma_done=1）" style="html=1;endArrow=block;dashed=1;strokeColor=#666666;fontSize=11;fontColor=#444444;labelBackgroundColor=#ffffff;" edge="1" parent="1">
           <mxGeometry relative="1" as="geometry">
             <mxPoint x="650" y="535" as="sourcePoint" />
             <mxPoint x="120" y="535" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="d4" value="⑩ 讀回記憶體（burst，收到的資料）" style="html=1;endArrow=block;strokeColor=#666666;fontSize=11;fontColor=#444444;labelBackgroundColor=#ffffff;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="120" y="570" as="sourcePoint" />
+            <mxPoint x="940" y="570" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="d5" value="⑪ HRDATA（burst 資料）" style="html=1;endArrow=block;dashed=1;strokeColor=#666666;fontSize=11;fontColor=#444444;labelBackgroundColor=#ffffff;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="940" y="605" as="sourcePoint" />
+            <mxPoint x="120" y="605" as="targetPoint" />
           </mxGeometry>
         </mxCell>
       </root>

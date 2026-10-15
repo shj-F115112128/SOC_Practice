@@ -51,7 +51,11 @@ entity ahb_uart_slave_wrapper is
         rx_data_o    : out std_logic_vector(7 downto 0) := (others => '0');
         ctrl_enable_o: out std_logic := '0';
         dma_consume  : in  std_logic := '0';
-        dma_done_set : in  std_logic := '0'
+        dma_done_set : in  std_logic := '0';
+
+        -- out-of-band IRQ (MSC phase D "intr"): level, mirrors dma_done, so it
+        -- stays asserted until the CPU services it by reading STATUS
+        irq_o        : out std_logic := '0'
     );
 end entity ahb_uart_slave_wrapper;
 
@@ -115,6 +119,7 @@ begin
     rx_ready_o    <= rx_ready;
     rx_data_o     <= rx_data;
     ctrl_enable_o <= ctrl_enable;
+    irq_o         <= dma_done;
 
     xfer_requested <= '1' when (hsel = '1' and hready = '1' and
                                  (htrans = HTRANS_NONSEQ or htrans = HTRANS_SEQ))

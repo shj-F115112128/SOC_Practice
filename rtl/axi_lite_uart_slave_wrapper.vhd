@@ -62,7 +62,11 @@ entity axi_lite_uart_slave_wrapper is
         rx_ready_o   : out std_logic := '0';
         rx_data_o    : out std_logic_vector(7 downto 0) := (others => '0');
         dma_consume  : in  std_logic := '0';
-        dma_done_set : in  std_logic := '0'
+        dma_done_set : in  std_logic := '0';
+
+        -- out-of-band IRQ (MSC phase C "intr"): level, mirrors dma_done, so it
+        -- stays asserted until the CPU services it by reading STATUS
+        irq_o        : out std_logic := '0'
     );
 end entity axi_lite_uart_slave_wrapper;
 
@@ -101,7 +105,8 @@ architecture rtl of axi_lite_uart_slave_wrapper is
 
     signal wait_needed   : std_logic;
     signal commit_write   : std_logic;
-    signal commit_read    : std_logic;
+    signal commit_read    : std_logic; -- RXDATA-specific: clears rx_ready
+    signal read_ok        : std_logic; -- any successful read, any address
     signal awready_i, wready_i, bvalid_i : std_logic;
     signal arready_i, rvalid_i           : std_logic;
     signal bresp_i, rresp_i              : std_logic_vector(1 downto 0);
@@ -124,6 +129,7 @@ begin
 
     rx_ready_o <= rx_ready;
     rx_data_o  <= rx_data;
+    irq_o      <= dma_done;
 
     awaddr_valid <= '1' when (awaddr_q(31 downto 4) = (31 downto 4 => '0') and
                                awaddr_q(1 downto 0) = "00")
@@ -242,6 +248,9 @@ begin
                               and araddr_q(3 downto 0) = ADDR_RXDATA)
                     else '0';
 
+    read_ok <= '1' when (rstate = RS_DATA and rready = '1' and araddr_valid = '1')
+               else '0';
+
     -- ---------------- UART register model ----------------
     process (aclk, aresetn)
     begin
@@ -274,7 +283,7 @@ begin
 
             if dma_done_set = '1' then
                 dma_done <= '1';
-            elsif commit_read = '1' and araddr_q(3 downto 0) = ADDR_STATUS then
+            elsif read_ok = '1' and araddr_q(3 downto 0) = ADDR_STATUS then
                 dma_done <= '0';
             end if;
 
