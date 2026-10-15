@@ -7,13 +7,19 @@
 -- Register map (word-addressed, byte offsets 0x0-0xC) -- identical to the
 -- AHB version so the two wrappers are directly comparable:
 --   0x0 CTRL   [R/W] bit0 = enable
---   0x4 STATUS [RO]  bit0 = tx_busy, bit1 = rx_ready
+--   0x4 STATUS [RO]  bit0 = tx_busy, bit1 = rx_ready, bit2 = dma_done
 --   0x8 TXDATA [R/W] bits(7:0); write starts a simulated transmission
 --                    (tx_busy for TX_BUSY_CYCLES cycles). A write while
 --                    tx_busy='1' deasserts wready (back-pressure) until clear.
 --   0xC RXDATA [RO]  bits(7:0); reading clears rx_ready. Non-blocking, same
 --                    simplification as the AHB version.
 --   >=0x10           SLVERR on BRESP/RRESP.
+--
+-- rx_ready_o/rx_data_o and dma_consume/dma_done_set are the additive hooks
+-- used to wire this up to axi_uart_master_wrapper for the system-level MSC
+-- testbench (docs/05) -- same convention as ahb_uart_slave_wrapper's hooks.
+-- All default '0'/open so tb_axi_lite_uart_slave_wrapper.vhd (which never
+-- drives them) is unaffected.
 
 library ieee;
 use ieee.std_logic_1164.all;
@@ -50,7 +56,13 @@ entity axi_lite_uart_slave_wrapper is
 
         -- test/debug backdoor used by the testbench to emulate a byte arriving
         rx_byte_valid : in std_logic;
-        rx_byte_data  : in std_logic_vector(7 downto 0)
+        rx_byte_data  : in std_logic_vector(7 downto 0);
+
+        -- additive hooks for axi_uart_master_wrapper (see register-map comment above)
+        rx_ready_o   : out std_logic := '0';
+        rx_data_o    : out std_logic_vector(7 downto 0) := (others => '0');
+        dma_consume  : in  std_logic := '0';
+        dma_done_set : in  std_logic := '0'
     );
 end entity axi_lite_uart_slave_wrapper;
 
@@ -85,6 +97,7 @@ architecture rtl of axi_lite_uart_slave_wrapper is
     signal tx_data     : std_logic_vector(7 downto 0);
     signal rx_ready    : std_logic;
     signal rx_data     : std_logic_vector(7 downto 0);
+    signal dma_done    : std_logic;
 
     signal wait_needed   : std_logic;
     signal commit_write   : std_logic;
@@ -94,13 +107,13 @@ architecture rtl of axi_lite_uart_slave_wrapper is
     signal bresp_i, rresp_i              : std_logic_vector(1 downto 0);
 
     function reg_rdata(sel : std_logic_vector(3 downto 0);
-                        ctrl_enable, rx_ready, tx_busy : std_logic;
+                        ctrl_enable, rx_ready, tx_busy, dma_done : std_logic;
                         tx_data, rx_data : std_logic_vector(7 downto 0))
         return std_logic_vector is
     begin
         case sel is
             when ADDR_CTRL   => return (31 downto 1 => '0') & ctrl_enable;
-            when ADDR_STATUS => return (31 downto 2 => '0') & rx_ready & tx_busy;
+            when ADDR_STATUS => return (31 downto 3 => '0') & dma_done & rx_ready & tx_busy;
             when ADDR_TXDATA => return (31 downto 8 => '0') & tx_data;
             when ADDR_RXDATA => return (31 downto 8 => '0') & rx_data;
             when others      => return (31 downto 0 => '0');
@@ -108,6 +121,9 @@ architecture rtl of axi_lite_uart_slave_wrapper is
     end function;
 
 begin
+
+    rx_ready_o <= rx_ready;
+    rx_data_o  <= rx_data;
 
     awaddr_valid <= '1' when (awaddr_q(31 downto 4) = (31 downto 4 => '0') and
                                awaddr_q(1 downto 0) = "00")
@@ -190,7 +206,7 @@ begin
     end process;
 
     process (rstate, arvalid, rready, araddr_valid, araddr_q,
-             ctrl_enable, tx_busy, tx_data, rx_ready, rx_data)
+             ctrl_enable, tx_busy, tx_data, rx_ready, rx_data, dma_done)
     begin
         rnext      <= rstate;
         arready_i  <= '0';
@@ -208,7 +224,7 @@ begin
                 if araddr_valid = '1' then
                     rresp_i <= RESP_OKAY;
                     rdata   <= reg_rdata(araddr_q(3 downto 0), ctrl_enable,
-                                          rx_ready, tx_busy, tx_data, rx_data);
+                                          rx_ready, tx_busy, dma_done, tx_data, rx_data);
                 else
                     rresp_i <= RESP_ERROR;
                 end if;
@@ -236,6 +252,7 @@ begin
             tx_data     <= (others => '0');
             rx_ready    <= '0';
             rx_data     <= (others => '0');
+            dma_done    <= '0';
         elsif rising_edge(aclk) then
             if tx_busy = '1' then
                 if tx_busy_cnt = to_unsigned(1, 4) then
@@ -246,9 +263,19 @@ begin
                 end if;
             end if;
 
+            if dma_consume = '1' then
+                rx_ready <= '0';
+            end if;
+
             if rx_byte_valid = '1' then
                 rx_data  <= rx_byte_data;
                 rx_ready <= '1';
+            end if;
+
+            if dma_done_set = '1' then
+                dma_done <= '1';
+            elsif commit_read = '1' and araddr_q(3 downto 0) = ADDR_STATUS then
+                dma_done <= '0';
             end if;
 
             if commit_write = '1' then

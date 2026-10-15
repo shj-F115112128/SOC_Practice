@@ -1,13 +1,14 @@
-# Bonus：RTL + 模擬（第 1 題 — Slave Wrapper FSM）
+# Bonus：RTL + 模擬
 
-針對 UART SIP 的暫存器檔（CTRL/STATUS/TXDATA/RXDATA），實作
-[01-ahb-wrapper-fsm.md](01-ahb-wrapper-fsm.md) 與 [02-axi-wrapper-fsm.md](02-axi-wrapper-fsm.md)
-裡的 **AHB 與 AXI-Lite slave wrapper FSM**，課程規定用 VHDL，模擬用實驗室慣用的
-**Vivado 2018.2 xsim**（板子是 EGO-XZ7，Zynq-7000）。
+針對 UART SIP，實作 [01-ahb-wrapper-fsm.md](01-ahb-wrapper-fsm.md) 與
+[02-axi-wrapper-fsm.md](02-axi-wrapper-fsm.md) 裡畫的**全部**狀態機（slave wrapper、
+master/DMA wrapper、AHB arbiter），讓模擬波型真的能跑出 [03-msc-ahb.md](03-msc-ahb.md)／
+[04-msc-axi.md](04-msc-axi.md) 畫的 A→B→C→D 四個階段，不只是暫存器存取那一段。課程規定用
+VHDL，模擬用實驗室慣用的 **Vivado 2018.2 xsim**（板子是 EGO-XZ7，Zynq-7000）。
 
 ## 範圍
 
-在範圍內：
+**暫存器檔 slave wrapper**（單獨測，對應 MSC 的 phase A/C 那種單純讀寫）：
 - `rtl/ahb_uart_slave_wrapper.vhd` — AHB-Lite slave wrapper FSM：
   `IDLE → NONSEQ → {WAIT* →} OKAY → IDLE` 與 `IDLE → NONSEQ → ERR1 → ERR2 → IDLE`，含背靠背的
   pipelined 傳輸。
@@ -15,22 +16,37 @@
   (`IDLE → WADDR → WDATA{wait*} → RESP → IDLE`) 與 read (`IDLE → RADDR → RDATA → IDLE`)
   channel FSM。
 
-沒做的部分：**master/DMA wrapper FSM** 跟 **AHB arbiter FSM**，還是留在 docs 01/02 的圖那邊。要
-讓它們動起來還得另外寫一個記憶體端的 bus-functional model 當對手，時間抓不夠就先放一邊 —
-這兩個暫存器檔 slave wrapper 本身就能單獨測，先把這個做完整比較實際。
+**系統層級**（這兩個 wrapper 再加上 master/DMA wrapper、記憶體 slave BFM，AHB 版還要再加一個
+arbiter，兜起來跑完整的 MSC）：
+- `rtl/ahb_uart_master_wrapper.vhd` — AHB master/DMA wrapper FSM：`IDLE → REQ → NONSEQ → SEQ* →
+  LAST → DONE → IDLE`，收集 `BURST_LEN`（預設 4）個 RX byte 後，以 master 身份 burst 寫進記憶體。
+- `rtl/ahb_arbiter.vhd` — 固定優先權（CPU > DMA）arbiter，`GRANT_NONE/GRANT_CPU/GRANT_DMA`。
+- `rtl/ahb_mem_slave_bfm.vhd` — DMA burst 目標 + CPU 讀回用的簡化記憶體 slave（純模擬用，不是
+  真的要合成的記憶體控制器，見 01 文件最後一節）。
+- `rtl/axi_uart_master_wrapper.vhd` — AXI master/DMA wrapper FSM（只做 write 路徑，對稱的 read
+  路徑跟 01/02 文件一樣沒另外畫）：`IDLE → AW → W → B* → DONE → IDLE`，用 `BURST_LEN` 個獨立的
+  AXI4-Lite write transaction 模擬 burst（AXI4-Lite 協定本身沒有 burst，所以用連續幾個單筆
+  transaction 代表）。
+- `rtl/axi_mem_slave_bfm.vhd` — 同上，AXI4-Lite 版。
+- AXI 版不需要另外的 arbiter RTL：CPU 跟 DMA 各自用自己獨立的 channel 直接接到各自要存取的
+  slave，沒有共享匯流排的仲裁問題（見 02 文件最後一節）。
 
-兩個 wrapper 共用同一套簡化過的 UART 暫存器模型，行為可以直接互相對照：
+兩個暫存器檔 wrapper 共用同一套簡化過的 UART 暫存器模型，行為可以直接互相對照：
 
 | 位移 | 暫存器 | 存取 | 行為 |
 |---|---|---|---|
 | `0x0` | CTRL | R/W | bit0 = enable |
-| `0x4` | STATUS | RO | bit0 = tx_busy, bit1 = rx_ready |
+| `0x4` | STATUS | RO | bit0 = tx_busy, bit1 = rx_ready, bit2 = dma_done（DMA burst 完成後
+  設起來，CPU 讀 STATUS 時清掉——對應 MSC phase D 的「中斷＋讀狀態」） |
 | `0x8` | TXDATA | R/W | 寫入會啟動一次模擬的傳輸（忙碌 4 個 cycle）；忙碌中再寫入會被
   back-pressure（AHB：`WAIT`；AXI：`WREADY=0`） |
 | `0xC` | RXDATA | RO | 讀取後會清除 `rx_ready`；testbench 用 `rx_byte_valid`/`rx_byte_data`
   後門訊號模擬收到一個 byte（RX FIFO 為空時應該 block 的讀取，這裡簡化成 non-blocking — 詳見
   RTL 裡的註解） |
 | `≥0x10` | — | — | AHB：2-cycle `HRESP=ERROR`；AXI：`BRESP`/`RRESP = SLVERR` |
+
+`rx_ready_o`/`rx_data_o`/`dma_consume`/`dma_done_set` 是兩個暫存器檔 wrapper 額外加的 hook，
+用來跟對應的 master/DMA wrapper 接起來（預設值讓舊的單獨測 testbench 不受影響）。
 
 ## 怎麼跑
 
@@ -107,9 +123,47 @@ Note: [PASS] FSM recovers to normal OKAY access after SLVERR                 Tim
 ==== AXI-Lite UART slave wrapper: 13 passed, 0 failed ====
 ```
 
-兩個測試套件在 Vivado 2018.2 xsim 下全部通過（28/28 項檢查），跟原本 Verilog 版本
-（Icarus Verilog 12.0 下 28/28）結果一致——時間戳記也幾乎完全對得上，代表翻譯過程沒有
-改變任何時序行為。
+### AHB 系統層級 MSC — `sim/tb_ahb_system_msc.vhd`
+
+把 arbiter、兩個暫存器檔/master wrapper、記憶體 BFM 接起來，實際跑一次 03 文件畫的四個階段：
+CPU 設定 SIP（phase A）→ DMA 收滿 4 個 byte 後跟 arbiter 要匯流排（phase B，`HBUSREQ1`/
+`HGRANT1`）→ burst 寫進記憶體（phase C，`NONSEQ`+3 個 `SEQ`）→ DMA 完成、CPU 讀 `STATUS.dma_done`
+再把記憶體內容讀回來比對（phase D）。
+
+```
+Note: [PASS] phase A: CTRL write (enable) returns OKAY
+Note: [PASS] phase B: DMA requested/was granted the bus (HBUSREQ1/HGRANT1)
+Note: [PASS] phase C: SIP-DMA burst to memory completed (dma_done pulsed)
+Note: [PASS] phase D: STATUS.dma_done == 1 after burst
+Note: [PASS] phase D: memory[0] == byte DMA'd by the SIP
+Note: [PASS] phase D: memory[1] == byte DMA'd by the SIP
+Note: [PASS] phase D: memory[2] == byte DMA'd by the SIP
+Note: [PASS] phase D: memory[3] == byte DMA'd by the SIP
+
+==== AHB system MSC (A/B/C/D): 8 passed, 0 failed ====
+```
+
+### AXI 系統層級 MSC — `sim/tb_axi_system_msc.vhd`
+
+一樣四個階段，但 phase C 的 `STATUS` 讀取改用 CPU 自己獨立的 read channel，刻意安排成跟
+phase B 的 DMA write burst**同時進行**（04 文件強調的那個 AHB 做不到的差異）：
+
+```
+Note: [PASS] phase A: CTRL write (enable) returns OKAY
+Note: [PASS] phase C: STATUS read completes independently of the DMA write channel
+Note: [PASS] phase B: SIP-DMA write burst to memory completed (dma_done pulsed)
+Note: [PASS] phase C: STATUS.dma_done == 1 after burst
+Note: [PASS] phase D: memory[0] == byte DMA'd by the SIP
+Note: [PASS] phase D: memory[1] == byte DMA'd by the SIP
+Note: [PASS] phase D: memory[2] == byte DMA'd by the SIP
+Note: [PASS] phase D: memory[3] == byte DMA'd by the SIP
+
+==== AXI system MSC (A/B/C/D): 8 passed, 0 failed ====
+```
+
+四個 testbench 在 Vivado 2018.2 xsim 下全部通過（15+13+8+8 = 44/44 項檢查），其中暫存器檔
+wrapper 那兩個跟原本 Verilog 版本（Icarus Verilog 12.0 下 28/28）結果一致——時間戳記也幾乎
+完全對得上，代表翻譯過程沒有改變任何時序行為。
 
 ### 翻譯過程中遇到的一個真實問題
 
@@ -129,3 +183,29 @@ AXI 版還有第二個更隱晦的問題：原本設計是 `stim` process 跟兩
 procedural assignment、沒有 VHDL 這種多重 driver 解析語意。修法是讓每個 AXI channel 從頭到尾
 都只有一個常駐 process 在驅動（`write_driver`/`read_driver`），`stim` 改成只透過簡單的
 `req`/`done` 訊號下指令，不直接碰 AXI 訊號本身。
+
+### 系統層級時又遇到的三個真實問題
+
+寫 master wrapper/arbiter/記憶體 BFM 這幾個新模組時，又踩到幾個跟上面兩個不一樣、純粹是這次
+新增的狀態機/BFM 設計沒想清楚的 bug（不是翻譯問題），都是先跑過才發現的：
+
+1. **arbiter 允許 CPU 在 DMA burst 中途把匯流排搶走。** 第一版 `GRANT_DMA → GRANT_CPU` 的條件
+   只檢查 `HBUSREQ0='1' and HREADY='1'`，沒檢查 DMA 自己的 `HBUSREQ1` 是不是已經放掉——這跟
+   AHB 規則（grant 只能在傳輸邊界切換）不符，也跟我自己寫在檔頭註解裡「self-release」的設計
+   意圖矛盾。修法是兩個方向都要求「正在拿 grant 的那個 master 自己先放掉 HBUSREQ」才能換人。
+2. **master wrapper 的輸出比狀態晚了一拍。** 第一版把「要送出的位址/HTRANS」寫在狀態轉移的
+   同一段程式碼裡（例如進入 `S_NONSEQ` 時才去設下一輪要用的 `haddr`），結果變成這個位址要到
+   *下一個* state 才會真的出現在匯流排上——跟 slave wrapper 那種「輸出完全是目前 state 的
+   組合邏輯函式」的寫法不一樣，混進了一個不小心多出來的暫存器級。改成跟 slave wrapper 同款的
+   兩段式（組合邏輯輸出 process + 時序 bookkeeping process）就修好了，只有 `HWDATA`（故意要晚
+   `HADDR`/`HTRANS` 一拍，符合 AHB 寫入資料相位本來就落後位址相位一個 cycle 的規則）才保留
+   明確的暫存管線。
+3. **記憶體 BFM 的寫入沒有「只做一次」的保護，讀取卻多了一個不必要的延遲。** 第一版用
+   `addr_q`/`write_q` 記住上次的交易，但沒有一個「這筆交易還有效」的旗標，於是匯流排上換成
+   別的、不相關的交易之後，`write_q='1'` 還是繼續每個 cycle 重寫同一個位址，拿當下匯流排上
+   剛好出現的（跟這個 BFM 完全無關的）`HWDATA` 當資料，把前一次 burst 寫好的最後一個字覆蓋掉。
+   補上一個「只在剛鎖定位址的下一個 cycle 才生效」的 one-shot `pending` 旗標治好了寫入，但這
+   個旗標如果同時套用在讀取路徑上，又會讓 `HRDATA` 比 slave wrapper 的時序晚一拍，跟 CPU 讀取
+   procedure 預期的「資料跟 `HREADYOUT=1` 同一個 cycle 就位」兜不起來。最後拆成兩條路：寫入
+   維持 `pending` 保護，讀取改成直接用目前的 `addr_q` 組合邏輯算 `HRDATA`（讀到舊位址不會造成
+   資料損毀，不需要這層保護）。

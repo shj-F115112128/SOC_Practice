@@ -1,0 +1,17 @@
+add_wave /tb_ahb_system_msc/hclk
+add_wave /tb_ahb_system_msc/hresetn
+add_wave /tb_ahb_system_msc/cpu_hbusreq
+add_wave /tb_ahb_system_msc/hgrant0
+add_wave /tb_ahb_system_msc/dma_hbusreq
+add_wave /tb_ahb_system_msc/hgrant1
+add_wave /tb_ahb_system_msc/haddr_bus
+add_wave /tb_ahb_system_msc/htrans_bus
+add_wave /tb_ahb_system_msc/hwrite_bus
+add_wave /tb_ahb_system_msc/hwdata_bus
+add_wave /tb_ahb_system_msc/hready_bus
+add_wave /tb_ahb_system_msc/hrdata_bus
+add_wave /tb_ahb_system_msc/rx_byte_valid
+add_wave /tb_ahb_system_msc/rx_byte_data
+add_wave /tb_ahb_system_msc/s_dma_done
+add_wave /tb_ahb_system_msc/dma/state
+run -all

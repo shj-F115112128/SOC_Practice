@@ -6,3 +6,10 @@ xsim.dir/
 *.jou
 *.wdb
 webtalk*.log
+*.str
+xelab.log
+xelab.pb
+xsim.log
+xsim_*.backup.log
+xvhdl.log
+xvhdl.pb

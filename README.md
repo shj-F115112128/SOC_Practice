@@ -17,7 +17,7 @@ AMBA SoC 課程作業：
 | [docs/02-axi-wrapper-fsm.md](docs/02-axi-wrapper-fsm.md) | AXI slave wrapper FSM（write/read channel）、AXI master wrapper FSM（DMA 讀寫）、多 Master/Slave 互連說明 |
 | [docs/03-msc-ahb.md](docs/03-msc-ahb.md) | MSC：CPU 設定 UART → UART DMA 把 RX 資料 burst 寫入記憶體 → CPU 讀回狀態與資料，AHB 版 |
 | [docs/04-msc-axi.md](docs/04-msc-axi.md) | 同樣情境在 AXI 5 個 channel 上重畫，凸顯 outstanding/並行交易 |
-| [docs/05-rtl-simulation.md](docs/05-rtl-simulation.md) | **Bonus：** AHB、AXI-Lite slave wrapper FSM 的 VHDL RTL 與自我檢查 testbench，Vivado 2018.2 xsim 下 28/28 全過 |
+| [docs/05-rtl-simulation.md](docs/05-rtl-simulation.md) | **Bonus：** AHB、AXI slave + master/DMA wrapper、arbiter、記憶體 BFM 全套 VHDL RTL 與自我檢查 testbench，Vivado 2018.2 xsim 下 44/44 全過，系統層級測試完整跑過 MSC 的 A→B→C→D |
 
 > 圖都用 [draw.io](https://www.diagrams.net/) 畫，原始 `.drawio` 檔放在 [`Upload/`](Upload/)，
 > 匯出的 PNG 放在 [`Upload/image/`](Upload/image/) 並直接嵌在各篇 doc 裡；圖說下方都附了
@@ -34,9 +34,10 @@ wrapper 上。AXI 因為 write/read channel（AW/W/B 跟 AR/R）本來就是獨�
 課程教材：`IHI0033C_amba_ahb_protocol_spec.pdf`、`IHI0022L_amba_axi_protocol_spec.pdf`（上層資
 料夾）。UART 暫存器配置比照實驗室 EGO-XZ7（Zynq-7000）板子上常見的 UART 控制器風格。
 
-Master/DMA wrapper FSM 跟 AHB arbiter（docs 01/02）目前還只有概念圖，沒刻成 RTL — 要模擬的話
-還要再寫一個記憶體端的 slave 模型，這次先沒做。Bonus 的兩個 slave wrapper 原本是用 Verilog
-寫的（邏輯對著同一組測項在 Icarus Verilog 下跑過 28/28 全過），課程規定要交 VHDL，所以照原本
-邏輯翻成 VHDL（`rtl/*.vhd`），用實驗室的 Vivado 2018.2 xsim 重新跑過一次，一樣 28/28 全過，
-時間戳記也跟 Verilog 版幾乎完全對得上 — 細節（包括翻譯過程中踩到的 VHDL 多重 driver 問題）見
-[docs/05-rtl-simulation.md](docs/05-rtl-simulation.md)。
+Bonus 的兩個 slave wrapper 原本是用 Verilog 寫的（邏輯對著同一組測項在 Icarus Verilog 下跑過
+28/28 全過），課程規定要交 VHDL，所以照原本邏輯翻成 VHDL（`rtl/*.vhd`），用實驗室的
+Vivado 2018.2 xsim 重新跑過一次，一樣全過，時間戳記也跟 Verilog 版幾乎完全對得上。後來把
+docs 01/02 畫的 master/DMA wrapper FSM、AHB arbiter 也刻成 RTL，再加一個簡化的記憶體 slave
+模型，兜出兩個系統層級 testbench，讓模擬波型能完整跑過 03/04 文件畫的 MSC 四個階段（A 設定→
+B 仲裁/DMA 寫入記憶體→C 中斷/讀狀態→D 讀回資料），不只是暫存器存取那一段。細節（包括翻譯
+過程跟系統層級兩階段各自踩到的真實 bug）見 [docs/05-rtl-simulation.md](docs/05-rtl-simulation.md)。

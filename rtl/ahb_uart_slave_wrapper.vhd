@@ -5,7 +5,7 @@
 --
 -- Register map (word-addressed, byte offsets 0x0-0xC):
 --   0x0 CTRL   [R/W] bit0 = enable
---   0x4 STATUS [RO]  bit0 = tx_busy, bit1 = rx_ready
+--   0x4 STATUS [RO]  bit0 = tx_busy, bit1 = rx_ready, bit2 = dma_done
 --   0x8 TXDATA [R/W] bits(7:0); a write starts a simulated transmission
 --                    (tx_busy held for TX_BUSY_CYCLES cycles). Writing while
 --                    tx_busy='1' inserts AHB WAIT states until it clears.
@@ -14,6 +14,13 @@
 --                    rx_ready='0' (a real RX-FIFO-empty stall is intentionally
 --                    out of scope here -- see docs/05-rtl-simulation.md).
 --   >=0x10           any access -> 2-cycle AHB ERROR response.
+--
+-- rx_ready_o/rx_data_o/ctrl_enable_o and dma_consume/dma_done_set are the
+-- hooks used to wire this up to ahb_uart_master_wrapper for the system-level
+-- MSC testbench (docs/05): the master wrapper watches rx_ready_o, grabs
+-- rx_data_o, pulses dma_consume once it has, bursts the byte to memory, then
+-- pulses dma_done_set. All four are additive -- default '0'/open so
+-- tb_ahb_uart_slave_wrapper.vhd (which never drives them) is unaffected.
 
 library ieee;
 use ieee.std_logic_1164.all;
@@ -37,7 +44,14 @@ entity ahb_uart_slave_wrapper is
 
         -- test/debug backdoor used by the testbench to emulate a byte arriving
         rx_byte_valid : in std_logic;
-        rx_byte_data  : in std_logic_vector(7 downto 0)
+        rx_byte_data  : in std_logic_vector(7 downto 0);
+
+        -- additive hooks for ahb_uart_master_wrapper (see register-map comment above)
+        rx_ready_o   : out std_logic := '0';
+        rx_data_o    : out std_logic_vector(7 downto 0) := (others => '0');
+        ctrl_enable_o: out std_logic := '0';
+        dma_consume  : in  std_logic := '0';
+        dma_done_set : in  std_logic := '0'
     );
 end entity ahb_uart_slave_wrapper;
 
@@ -75,6 +89,7 @@ architecture rtl of ahb_uart_slave_wrapper is
     signal tx_data     : std_logic_vector(7 downto 0);
     signal rx_ready    : std_logic;
     signal rx_data     : std_logic_vector(7 downto 0);
+    signal dma_done    : std_logic;
 
     signal wait_needed  : std_logic;
     signal commit_write  : std_logic;
@@ -82,13 +97,13 @@ architecture rtl of ahb_uart_slave_wrapper is
     signal hreadyout_i   : std_logic;
 
     function reg_rdata(sel : std_logic_vector(3 downto 0);
-                        ctrl_enable, rx_ready, tx_busy : std_logic;
+                        ctrl_enable, rx_ready, tx_busy, dma_done : std_logic;
                         tx_data, rx_data : std_logic_vector(7 downto 0))
         return std_logic_vector is
     begin
         case sel is
             when ADDR_CTRL   => return (31 downto 1 => '0') & ctrl_enable;
-            when ADDR_STATUS => return (31 downto 2 => '0') & rx_ready & tx_busy;
+            when ADDR_STATUS => return (31 downto 3 => '0') & dma_done & rx_ready & tx_busy;
             when ADDR_TXDATA => return (31 downto 8 => '0') & tx_data;
             when ADDR_RXDATA => return (31 downto 8 => '0') & rx_data;
             when others      => return (31 downto 0 => '0');
@@ -96,6 +111,10 @@ architecture rtl of ahb_uart_slave_wrapper is
     end function;
 
 begin
+
+    rx_ready_o    <= rx_ready;
+    rx_data_o     <= rx_data;
+    ctrl_enable_o <= ctrl_enable;
 
     xfer_requested <= '1' when (hsel = '1' and hready = '1' and
                                  (htrans = HTRANS_NONSEQ or htrans = HTRANS_SEQ))
@@ -129,7 +148,7 @@ begin
 
     -- ---- next-state / output logic ----
     process (state, addr_valid_q, wait_needed, xfer_requested, addr_q,
-             ctrl_enable, tx_busy, tx_data, rx_ready, rx_data)
+             ctrl_enable, tx_busy, tx_data, rx_ready, rx_data, dma_done)
     begin
         next_state  <= state;
         hreadyout_i <= '1';
@@ -156,7 +175,7 @@ begin
                     hreadyout_i <= '1';
                     hresp       <= RESP_OKAY;
                     hrdata      <= reg_rdata(addr_q(3 downto 0), ctrl_enable,
-                                              rx_ready, tx_busy, tx_data, rx_data);
+                                              rx_ready, tx_busy, dma_done, tx_data, rx_data);
                     if xfer_requested = '1' then
                         next_state <= S_NONSEQ;
                     else
@@ -169,7 +188,7 @@ begin
                     hreadyout_i <= '1';
                     hresp       <= RESP_OKAY;
                     hrdata      <= reg_rdata(addr_q(3 downto 0), ctrl_enable,
-                                              rx_ready, tx_busy, tx_data, rx_data);
+                                              rx_ready, tx_busy, dma_done, tx_data, rx_data);
                     if xfer_requested = '1' then
                         next_state <= S_NONSEQ;
                     else
@@ -218,6 +237,7 @@ begin
             tx_data     <= (others => '0');
             rx_ready    <= '0';
             rx_data     <= (others => '0');
+            dma_done    <= '0';
         elsif rising_edge(hclk) then
             -- simulated TX shift: busy counts down to 0 on its own
             if tx_busy = '1' then
@@ -229,10 +249,23 @@ begin
                 end if;
             end if;
 
+            -- the DMA (ahb_uart_master_wrapper) consumed the previously-latched
+            -- byte; a fresh arrival this same cycle (below) takes priority
+            if dma_consume = '1' then
+                rx_ready <= '0';
+            end if;
+
             -- simulated RX arrival (testbench-driven backdoor)
             if rx_byte_valid = '1' then
                 rx_data  <= rx_byte_data;
                 rx_ready <= '1';
+            end if;
+
+            -- DMA burst-to-memory completed; CPU reading STATUS clears it
+            if dma_done_set = '1' then
+                dma_done <= '1';
+            elsif commit_read = '1' and addr_q(3 downto 0) = ADDR_STATUS then
+                dma_done <= '0';
             end if;
 
             if commit_write = '1' then
