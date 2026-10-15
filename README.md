@@ -1,5 +1,7 @@
 # SoC Practice — AMBA AHB/AXI Wrapper FSM + MSC
 
+平台：EGO-XZ7（Zynq-7000），Bonus 的 VHDL 模擬用 Vivado 2018.2。
+
 AMBA SoC 課程作業：
 
 1. 畫出 **AXI 與 AHB 的 Master / Slave wrapper 有限狀態機**，SIP 任選，且需支援多 Master、多 Slave。
@@ -30,7 +32,7 @@ wrapper 上。AXI 因為 write/read channel（AW/W/B 跟 AR/R）本來就是獨�
 間只有一個 master 拿得到 grant，做不到這點。
 
 課程教材：`IHI0033C_amba_ahb_protocol_spec.pdf`、`IHI0022L_amba_axi_protocol_spec.pdf`（上層資
-料夾）。UART 暫存器配置參考了 [opencores.org](https://opencores.org/) 上常見的 UART core 風格。
+料夾）。UART 暫存器配置比照實驗室 EGO-XZ7（Zynq-7000）板子上常見的 UART 控制器風格。
 
 Master/DMA wrapper FSM 跟 AHB arbiter（docs 01/02）目前還只有概念圖，沒刻成 RTL — 要模擬的話
 還要再寫一個記憶體端的 slave 模型，這次先沒做。Bonus 的兩個 slave wrapper 原本是用 Verilog

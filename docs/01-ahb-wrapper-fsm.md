@@ -1,7 +1,7 @@
 # AHB Master / Slave Wrapper FSM — UART SIP
 
-選用的 IP（SIP）：一顆 UART core（例如 [opencores.org `uart16550`](https://opencores.org/projects/uart16550)
-或類似、內建 FIFO 的 UART），把它包裝成掛在 AHB 匯流排上的模組。這顆 UART 有：
+選用的 IP（SIP）：一顆 UART core（暫存器配置比照實驗室 EGO-XZ7 板子、Zynq-7000 PS 上常見的
+UART 控制器風格，內建 FIFO），把它包裝成掛在 AHB 匯流排上的模組。這顆 UART 有：
 
 - 一組 **暫存器檔**（control、status、baud divisor、TX data、RX data）→ 以 **AHB slave** 的身份被存取。
 - 內部的 **DMA 引擎**，負責把收到的 byte burst 寫回記憶體、以及把要傳送的 byte 從記憶體讀出，
