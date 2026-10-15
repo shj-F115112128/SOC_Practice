@@ -44,13 +44,13 @@
         <mxCell id="labelA" value="A&#10;CPU 設定 SIP" style="text;html=1;fontStyle=1;fontSize=13;align=left;" vertex="1" parent="1">
           <mxGeometry x="0" y="135" width="110" height="40" as="geometry" />
         </mxCell>
-        <mxCell id="a1" value="① AWVALID+WVALID：寫入 PKT 起始/結束位址＋CSR 啟動" style="curved=1;html=1;endArrow=block;strokeColor=#666666;fontSize=11;fontColor=#444444;labelBackgroundColor=#ffffff;" edge="1" parent="1">
+        <mxCell id="a1" value="① AWVALID+WVALID：寫入 PKT 起始/結束位址＋CSR 啟動" style="html=1;endArrow=block;strokeColor=#666666;fontSize=11;fontColor=#444444;labelBackgroundColor=#ffffff;" edge="1" parent="1">
           <mxGeometry relative="1" as="geometry">
             <mxPoint x="120" y="165" as="sourcePoint" />
             <mxPoint x="470" y="165" as="targetPoint" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="a2" value="② BVALID, BRESP=OKAY" style="curved=1;html=1;endArrow=block;dashed=1;strokeColor=#666666;fontSize=11;fontColor=#444444;labelBackgroundColor=#ffffff;" edge="1" parent="1">
+        <mxCell id="a2" value="② BVALID, BRESP=OKAY" style="html=1;endArrow=block;dashed=1;strokeColor=#666666;fontSize=11;fontColor=#444444;labelBackgroundColor=#ffffff;" edge="1" parent="1">
           <mxGeometry relative="1" as="geometry">
             <mxPoint x="470" y="200" as="sourcePoint" />
             <mxPoint x="120" y="200" as="targetPoint" />
@@ -67,13 +67,13 @@
         <mxCell id="labelB" value="B&#10;SIP-DMA 把 RX 資料寫入記憶體&#10;（write channel, AWID=1）" style="text;html=1;fontStyle=1;fontSize=13;align=left;" vertex="1" parent="1">
           <mxGeometry x="0" y="235" width="280" height="55" as="geometry" />
         </mxCell>
-        <mxCell id="b1" value="③ AWVALID(AWID=1)+WDATA burst → 寫入收 buff" style="curved=1;html=1;endArrow=block;strokeColor=#666666;fontSize=11;fontColor=#444444;labelBackgroundColor=#ffffff;" edge="1" parent="1">
+        <mxCell id="b1" value="③ AWVALID(AWID=1)+WDATA burst → 寫入收 buff" style="html=1;endArrow=block;strokeColor=#666666;fontSize=11;fontColor=#444444;labelBackgroundColor=#ffffff;" edge="1" parent="1">
           <mxGeometry relative="1" as="geometry">
             <mxPoint x="470" y="275" as="sourcePoint" />
             <mxPoint x="780" y="275" as="targetPoint" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="b2" value="④ BVALID, BRESP=OKAY, BID=1" style="curved=1;html=1;endArrow=block;dashed=1;strokeColor=#666666;fontSize=11;fontColor=#444444;labelBackgroundColor=#ffffff;" edge="1" parent="1">
+        <mxCell id="b2" value="④ BVALID, BRESP=OKAY, BID=1" style="html=1;endArrow=block;dashed=1;strokeColor=#666666;fontSize=11;fontColor=#444444;labelBackgroundColor=#ffffff;" edge="1" parent="1">
           <mxGeometry relative="1" as="geometry">
             <mxPoint x="780" y="310" as="sourcePoint" />
             <mxPoint x="470" y="310" as="targetPoint" />
@@ -90,19 +90,19 @@
         <mxCell id="labelC" value="C&#10;中斷＋CPU 讀狀態&#10;（read channel，和 B 的 write 彼此獨立，可同時進行）" style="text;html=1;fontStyle=1;fontSize=13;align=left;" vertex="1" parent="1">
           <mxGeometry x="0" y="365" width="330" height="55" as="geometry" />
         </mxCell>
-        <mxCell id="c1" value="⑤ intr（IRQ，帶外訊號）" style="curved=1;html=1;endArrow=open;dashed=1;strokeColor=#666666;fontSize=11;fontColor=#444444;labelBackgroundColor=#ffffff;" edge="1" parent="1">
+        <mxCell id="c1" value="⑤ intr（IRQ，帶外訊號）" style="html=1;endArrow=open;dashed=1;strokeColor=#666666;fontSize=11;fontColor=#444444;labelBackgroundColor=#ffffff;" edge="1" parent="1">
           <mxGeometry relative="1" as="geometry">
             <mxPoint x="470" y="405" as="sourcePoint" />
             <mxPoint x="120" y="405" as="targetPoint" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="c2" value="⑥ ARVALID(ARID=0)：讀 STATUS" style="curved=1;html=1;endArrow=block;strokeColor=#666666;fontSize=11;fontColor=#444444;labelBackgroundColor=#ffffff;" edge="1" parent="1">
+        <mxCell id="c2" value="⑥ ARVALID(ARID=0)：讀 STATUS" style="html=1;endArrow=block;strokeColor=#666666;fontSize=11;fontColor=#444444;labelBackgroundColor=#ffffff;" edge="1" parent="1">
           <mxGeometry relative="1" as="geometry">
             <mxPoint x="120" y="440" as="sourcePoint" />
             <mxPoint x="470" y="440" as="targetPoint" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="c3" value="⑦ RVALID, RDATA=dma_done/rx_count" style="curved=1;html=1;endArrow=block;dashed=1;strokeColor=#666666;fontSize=11;fontColor=#444444;labelBackgroundColor=#ffffff;" edge="1" parent="1">
+        <mxCell id="c3" value="⑦ RVALID, RDATA=dma_done/rx_count" style="html=1;endArrow=block;dashed=1;strokeColor=#666666;fontSize=11;fontColor=#444444;labelBackgroundColor=#ffffff;" edge="1" parent="1">
           <mxGeometry relative="1" as="geometry">
             <mxPoint x="470" y="475" as="sourcePoint" />
             <mxPoint x="120" y="475" as="targetPoint" />
@@ -119,13 +119,13 @@
         <mxCell id="labelD" value="D&#10;CPU 讀取收到的資料" style="text;html=1;fontStyle=1;fontSize=13;align=left;" vertex="1" parent="1">
           <mxGeometry x="0" y="510" width="260" height="40" as="geometry" />
         </mxCell>
-        <mxCell id="d1" value="⑧ ARVALID：讀 buf_ptr（burst）" style="curved=1;html=1;endArrow=block;strokeColor=#666666;fontSize=11;fontColor=#444444;labelBackgroundColor=#ffffff;" edge="1" parent="1">
+        <mxCell id="d1" value="⑧ ARVALID：讀 buf_ptr（burst）" style="html=1;endArrow=block;strokeColor=#666666;fontSize=11;fontColor=#444444;labelBackgroundColor=#ffffff;" edge="1" parent="1">
           <mxGeometry relative="1" as="geometry">
             <mxPoint x="120" y="545" as="sourcePoint" />
             <mxPoint x="780" y="545" as="targetPoint" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="d2" value="⑨ RVALID：burst 資料" style="curved=1;html=1;endArrow=block;dashed=1;strokeColor=#666666;fontSize=11;fontColor=#444444;labelBackgroundColor=#ffffff;" edge="1" parent="1">
+        <mxCell id="d2" value="⑨ RVALID：burst 資料" style="html=1;endArrow=block;dashed=1;strokeColor=#666666;fontSize=11;fontColor=#444444;labelBackgroundColor=#ffffff;" edge="1" parent="1">
           <mxGeometry relative="1" as="geometry">
             <mxPoint x="780" y="580" as="sourcePoint" />
             <mxPoint x="120" y="580" as="targetPoint" />
