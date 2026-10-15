@@ -5,12 +5,12 @@
 --   IDLE -> NONSEQ -> WAIT* -> OKAY -> IDLE   (TXDATA write while tx_busy)
 --   IDLE -> NONSEQ -> ERR1 -> ERR2 -> IDLE    (bad address)
 --
--- Written for GHDL; not yet run on this machine (no VHDL simulator installed
--- here) -- see docs/05-rtl-simulation.md for status.
+-- Run with Vivado xsim 2018.2 (see docs/05-rtl-simulation.md).
 
 library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
+use std.env.all; -- for finish(), so xsim exits instead of free-running clk_gen forever
 
 entity tb_ahb_uart_slave_wrapper is
 end entity tb_ahb_uart_slave_wrapper;
@@ -55,7 +55,20 @@ architecture sim of tb_ahb_uart_slave_wrapper is
         end if;
     end procedure;
 
-    procedure ahb_write(addr : std_logic_vector(31 downto 0);
+    -- NB: VHDL only lets a subprogram drive a signal that's passed in as a
+    -- signal-class formal parameter (assigning an enclosing-scope signal
+    -- directly, Verilog-task style, is a compile error -- caught by Vivado's
+    -- xvhdl: "cannot assign signal ... from within a subprogram"). Hence the
+    -- explicit signal parameter list on both procedures below.
+    procedure ahb_write(signal hclk      : in  std_logic;
+                         signal hsel     : out std_logic;
+                         signal haddr    : out std_logic_vector(31 downto 0);
+                         signal htrans   : out std_logic_vector(1 downto 0);
+                         signal hwrite   : out std_logic;
+                         signal hwdata   : out std_logic_vector(31 downto 0);
+                         signal hreadyout: in  std_logic;
+                         signal hresp    : in  std_logic_vector(1 downto 0);
+                         addr : std_logic_vector(31 downto 0);
                          data : std_logic_vector(31 downto 0);
                          variable resp : out std_logic_vector(1 downto 0)) is
     begin
@@ -71,7 +84,15 @@ architecture sim of tb_ahb_uart_slave_wrapper is
         hsel <= '0';
     end procedure;
 
-    procedure ahb_read(addr : std_logic_vector(31 downto 0);
+    procedure ahb_read(signal hclk      : in  std_logic;
+                        signal hsel      : out std_logic;
+                        signal haddr     : out std_logic_vector(31 downto 0);
+                        signal htrans    : out std_logic_vector(1 downto 0);
+                        signal hwrite    : out std_logic;
+                        signal hreadyout : in  std_logic;
+                        signal hresp     : in  std_logic_vector(1 downto 0);
+                        signal hrdata    : in  std_logic_vector(31 downto 0);
+                        addr : std_logic_vector(31 downto 0);
                         variable data : out std_logic_vector(31 downto 0);
                         variable resp : out std_logic_vector(1 downto 0)) is
     begin
@@ -130,9 +151,9 @@ begin
         wait until rising_edge(hclk);
 
         -- 1. plain register write + read-back (IDLE->NONSEQ->OKAY->IDLE)
-        ahb_write(ADDR_CTRL, x"00000001", v_resp);
+        ahb_write(hclk, hsel, haddr, htrans, hwrite, hwdata, hreadyout, hresp, ADDR_CTRL, x"00000001", v_resp);
         check(v_resp = RESP_OKAY, "CTRL write returns OKAY");
-        ahb_read(ADDR_CTRL, v_rdata, v_resp);
+        ahb_read(hclk, hsel, haddr, htrans, hwrite, hreadyout, hresp, hrdata, ADDR_CTRL, v_rdata, v_resp);
         check(v_resp = RESP_OKAY and v_rdata = x"00000001", "CTRL read-back == 1");
 
         -- 2. back-to-back pipelined transfers (NONSEQ immediately followed by NONSEQ)
@@ -153,16 +174,16 @@ begin
         hsel <= '0';
 
         -- 3. TXDATA write that collides with tx_busy -> AHB WAIT states
-        ahb_write(ADDR_TXDATA, x"00000055", v_resp);
+        ahb_write(hclk, hsel, haddr, htrans, hwrite, hwdata, hreadyout, hresp, ADDR_TXDATA, x"00000055", v_resp);
         check(v_resp = RESP_OKAY, "first TXDATA write OKAY, tx_busy now set");
-        ahb_read(ADDR_STATUS, v_rdata, v_resp);
+        ahb_read(hclk, hsel, haddr, htrans, hwrite, hreadyout, hresp, hrdata, ADDR_STATUS, v_rdata, v_resp);
         check(v_rdata(0) = '1', "STATUS.tx_busy == 1 right after TXDATA write");
 
-        ahb_write(ADDR_TXDATA, x"00000066", v_resp);
+        ahb_write(hclk, hsel, haddr, htrans, hwrite, hwdata, hreadyout, hresp, ADDR_TXDATA, x"00000066", v_resp);
         check(v_resp = RESP_OKAY, "second TXDATA write (into WAIT) eventually OKAY");
-        ahb_read(ADDR_TXDATA, v_rdata, v_resp);
+        ahb_read(hclk, hsel, haddr, htrans, hwrite, hreadyout, hresp, hrdata, ADDR_TXDATA, v_rdata, v_resp);
         check(v_rdata = x"00000066", "TXDATA committed only after wait states cleared");
-        ahb_read(ADDR_STATUS, v_rdata, v_resp);
+        ahb_read(hclk, hsel, haddr, htrans, hwrite, hreadyout, hresp, hrdata, ADDR_STATUS, v_rdata, v_resp);
         check(v_rdata(0) = '0', "STATUS.tx_busy == 0 after TX finished");
 
         -- 4. RX byte arrival + read, non-blocking status model
@@ -170,24 +191,25 @@ begin
         rx_byte_valid <= '1'; rx_byte_data <= x"A5";
         wait until rising_edge(hclk); wait for 1 ns;
         rx_byte_valid <= '0';
-        ahb_read(ADDR_STATUS, v_rdata, v_resp);
+        ahb_read(hclk, hsel, haddr, htrans, hwrite, hreadyout, hresp, hrdata, ADDR_STATUS, v_rdata, v_resp);
         check(v_rdata(1) = '1', "STATUS.rx_ready == 1 after byte arrival");
-        ahb_read(ADDR_RXDATA, v_rdata, v_resp);
+        ahb_read(hclk, hsel, haddr, htrans, hwrite, hreadyout, hresp, hrdata, ADDR_RXDATA, v_rdata, v_resp);
         check(v_rdata = x"000000A5", "RXDATA read == 0xA5");
-        ahb_read(ADDR_STATUS, v_rdata, v_resp);
+        ahb_read(hclk, hsel, haddr, htrans, hwrite, hreadyout, hresp, hrdata, ADDR_STATUS, v_rdata, v_resp);
         check(v_rdata(1) = '0', "STATUS.rx_ready == 0 after RXDATA read (cleared)");
 
         -- 5. bad address -> 2-cycle ERROR response (ERR1 -> ERR2)
-        ahb_read(ADDR_BAD, v_rdata, v_resp);
+        ahb_read(hclk, hsel, haddr, htrans, hwrite, hreadyout, hresp, hrdata, ADDR_BAD, v_rdata, v_resp);
         check(v_resp = RESP_ERROR, "out-of-range address returns HRESP=ERROR");
 
         -- post-error access must work normally again
-        ahb_read(ADDR_CTRL, v_rdata, v_resp);
+        ahb_read(hclk, hsel, haddr, htrans, hwrite, hreadyout, hresp, hrdata, ADDR_CTRL, v_rdata, v_resp);
         check(v_resp = RESP_OKAY and v_rdata = x"00000001", "FSM recovers to normal OKAY access after ERROR");
 
         report "==== AHB UART slave wrapper: " & integer'image(pass_count) &
                " passed, " & integer'image(fail_count) & " failed ====";
         assert fail_count = 0 report "simulation FAILED" severity failure;
+        finish;  -- clk_gen never stops on its own; tell the simulator we're done
         wait;
     end process;
 

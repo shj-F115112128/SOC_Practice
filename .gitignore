@@ -1,2 +1,8 @@
 *.vvp
 *.vcd
+sim/xsim_work/
+.Xil/
+xsim.dir/
+*.jou
+*.wdb
+webtalk*.log

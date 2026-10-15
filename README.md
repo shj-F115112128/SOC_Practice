@@ -15,7 +15,7 @@ AMBA SoC 課程作業：
 | [docs/02-axi-wrapper-fsm.md](docs/02-axi-wrapper-fsm.md) | AXI slave wrapper FSM（write/read channel）、AXI master wrapper FSM（DMA 讀寫）、多 Master/Slave 互連說明 |
 | [docs/03-msc-ahb.md](docs/03-msc-ahb.md) | MSC：CPU 設定 UART → UART DMA 把 RX 資料 burst 寫入記憶體 → CPU 讀回狀態與資料，AHB 版 |
 | [docs/04-msc-axi.md](docs/04-msc-axi.md) | 同樣情境在 AXI 5 個 channel 上重畫，凸顯 outstanding/並行交易 |
-| [docs/05-rtl-simulation.md](docs/05-rtl-simulation.md) | **Bonus：** AHB、AXI-Lite slave wrapper FSM 的 VHDL RTL 與自我檢查 testbench（GHDL） |
+| [docs/05-rtl-simulation.md](docs/05-rtl-simulation.md) | **Bonus：** AHB、AXI-Lite slave wrapper FSM 的 VHDL RTL 與自我檢查 testbench，Vivado 2018.2 xsim 下 28/28 全過 |
 
 > 圖都用 [draw.io](https://www.diagrams.net/) 畫，原始 `.drawio` 檔放在 [`Upload/`](Upload/)，
 > 匯出的 PNG 放在 [`Upload/image/`](Upload/image/) 並直接嵌在各篇 doc 裡；圖說下方都附了
@@ -35,5 +35,6 @@ wrapper 上。AXI 因為 write/read channel（AW/W/B 跟 AR/R）本來就是獨�
 Master/DMA wrapper FSM 跟 AHB arbiter（docs 01/02）目前還只有概念圖，沒刻成 RTL — 要模擬的話
 還要再寫一個記憶體端的 slave 模型，這次先沒做。Bonus 的兩個 slave wrapper 原本是用 Verilog
 寫的（邏輯對著同一組測項在 Icarus Verilog 下跑過 28/28 全過），課程規定要交 VHDL，所以照原本
-邏輯翻成 VHDL（`rtl/*.vhd`），但這台機器還沒裝 GHDL，翻譯後的版本還沒有實際跑過模擬 — 細節見
+邏輯翻成 VHDL（`rtl/*.vhd`），用實驗室的 Vivado 2018.2 xsim 重新跑過一次，一樣 28/28 全過，
+時間戳記也跟 Verilog 版幾乎完全對得上 — 細節（包括翻譯過程中踩到的 VHDL 多重 driver 問題）見
 [docs/05-rtl-simulation.md](docs/05-rtl-simulation.md)。

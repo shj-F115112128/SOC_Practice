@@ -2,16 +2,27 @@
 -- Exercises docs/02-axi-wrapper-fsm.md's slave write/read channel FSMs, plus
 -- the key AXI-vs-AHB difference: an independent read can complete while a
 -- write is still back-pressured (not possible on the single shared AHB bus).
--- That overlap is modeled with two concurrent processes (write_thread /
--- read_thread) released together by the start_overlap pulse, mirroring the
--- Verilog testbench's fork/join block.
 --
--- Written for GHDL; not yet run on this machine (no VHDL simulator installed
--- here) -- see docs/05-rtl-simulation.md for status.
+-- Structure: two permanent "driver" processes each own one channel's worth
+-- of signals for the entire simulation (write_driver drives AW/W/B, read_
+-- driver drives AR/R) and serve simple req/done handshakes. `stim` never
+-- touches AXI signals directly -- it only pulses wr_req/rd_req -- so each
+-- AXI signal has exactly one process assigning it. (An earlier version had
+-- `stim` and two one-shot "thread" processes both calling into procedures
+-- that drove the same signals; VHDL gives each driving process its own
+-- driver on a resolved signal, so whichever process wasn't "active" still
+-- held its idle value, and conflicting 0/1 drivers resolved to 'X' the
+-- moment the second process went live -- hanging the simulation. Routing
+-- all AXI-channel traffic through one process per channel avoids that.)
+-- The same req/done processes naturally run concurrently, so test 3's
+-- overlapped write+read falls out for free, no separate fork/join needed.
+--
+-- Run with Vivado xsim 2018.2 (see docs/05-rtl-simulation.md).
 
 library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
+use std.env.all; -- for finish(), so xsim exits instead of free-running clk_gen forever
 
 entity tb_axi_lite_uart_slave_wrapper is
 end entity tb_axi_lite_uart_slave_wrapper;
@@ -52,10 +63,15 @@ architecture sim of tb_axi_lite_uart_slave_wrapper is
     signal rx_byte_valid : std_logic := '0';
     signal rx_byte_data  : std_logic_vector(7 downto 0) := (others => '0');
 
-    -- fork/join for test 3 (overlapped write + read)
-    signal start_overlap : std_logic := '0';
-    signal write3_done, read3_done : std_logic := '0';
-    signal resp3_write, resp3_read : std_logic_vector(1 downto 0);
+    -- req/done handshake into write_driver / read_driver (see header comment)
+    signal wr_addr, wr_data : std_logic_vector(31 downto 0) := (others => '0');
+    signal wr_req, wr_done  : std_logic := '0';
+    signal wr_resp          : std_logic_vector(1 downto 0);
+
+    signal rd_addr          : std_logic_vector(31 downto 0) := (others => '0');
+    signal rd_req, rd_done  : std_logic := '0';
+    signal rd_data          : std_logic_vector(31 downto 0);
+    signal rd_resp          : std_logic_vector(1 downto 0);
 
     shared variable pass_count : integer := 0;
     shared variable fail_count : integer := 0;
@@ -71,37 +87,41 @@ architecture sim of tb_axi_lite_uart_slave_wrapper is
         end if;
     end procedure;
 
-    -- awvalid/wvalid/bready (or arvalid/rready) held high until handshake --
-    -- a valid, if simplistic, AXI master behavior for a single outstanding xfer.
-    procedure axi_write(addr : std_logic_vector(31 downto 0);
+    -- these only drive the req/done handshake signals, which `stim` is the
+    -- sole writer of, so no multi-driver issue here.
+    procedure axi_write(signal wr_req  : out std_logic;
+                         signal wr_addr: out std_logic_vector(31 downto 0);
+                         signal wr_data: out std_logic_vector(31 downto 0);
+                         signal wr_done: in  std_logic;
+                         signal wr_resp: in  std_logic_vector(1 downto 0);
+                         addr : std_logic_vector(31 downto 0);
                          data : std_logic_vector(31 downto 0);
                          variable resp : out std_logic_vector(1 downto 0)) is
     begin
-        wait until rising_edge(aclk); wait for 1 ns;
-        awvalid <= '1'; awaddr <= addr;
-        wvalid  <= '1'; wdata  <= data; wstrb <= "1111";
-        bready  <= '1';
-        while bvalid /= '1' loop
-            wait until rising_edge(aclk); wait for 1 ns;
-        end loop;
-        resp := bresp;
-        wait until rising_edge(aclk); wait for 1 ns;
-        awvalid <= '0'; wvalid <= '0'; bready <= '0';
+        wr_addr <= addr; wr_data <= data;
+        wr_req <= '1';
+        wait until wr_done = '1';
+        resp := wr_resp;
+        wr_req <= '0';
+        wait until wr_done = '0';
     end procedure;
 
-    procedure axi_read(addr : std_logic_vector(31 downto 0);
+    procedure axi_read(signal rd_req  : out std_logic;
+                        signal rd_addr: out std_logic_vector(31 downto 0);
+                        signal rd_done: in  std_logic;
+                        signal rd_data: in  std_logic_vector(31 downto 0);
+                        signal rd_resp: in  std_logic_vector(1 downto 0);
+                        addr : std_logic_vector(31 downto 0);
                         variable data : out std_logic_vector(31 downto 0);
                         variable resp : out std_logic_vector(1 downto 0)) is
     begin
-        wait until rising_edge(aclk); wait for 1 ns;
-        arvalid <= '1'; araddr <= addr; rready <= '1';
-        while rvalid /= '1' loop
-            wait until rising_edge(aclk); wait for 1 ns;
-        end loop;
-        data := rdata;
-        resp := rresp;
-        wait until rising_edge(aclk); wait for 1 ns;
-        arvalid <= '0'; rready <= '0';
+        rd_addr <= addr;
+        rd_req <= '1';
+        wait until rd_done = '1';
+        data := rd_data;
+        resp := rd_resp;
+        rd_req <= '0';
+        wait until rd_done = '0';
     end procedure;
 
 begin
@@ -125,29 +145,44 @@ begin
         wait for 5 ns;
     end process;
 
-    -- test 3's write side: runs once, released by start_overlap
-    write_thread : process
-        variable v_resp : std_logic_vector(1 downto 0);
+    -- sole driver of the AW/W/B channel signals, for the whole simulation
+    write_driver : process
     begin
-        wait until start_overlap = '1';
-        axi_write(ADDR_TXDATA, x"00000066", v_resp);
-        resp3_write <= v_resp;
-        write3_done <= '1';
-        wait;
+        loop
+            wait until wr_req = '1';
+            wait until rising_edge(aclk); wait for 1 ns;
+            awvalid <= '1'; awaddr <= wr_addr;
+            wvalid  <= '1'; wdata  <= wr_data; wstrb <= "1111";
+            bready  <= '1';
+            while bvalid /= '1' loop
+                wait until rising_edge(aclk); wait for 1 ns;
+            end loop;
+            wr_resp <= bresp;
+            wait until rising_edge(aclk); wait for 1 ns;
+            awvalid <= '0'; wvalid <= '0'; bready <= '0';
+            wr_done <= '1';
+            wait until wr_req = '0';
+            wr_done <= '0';
+        end loop;
     end process;
 
-    -- test 3's read side: starts ~2ns after the write asserts AWVALID/WVALID,
-    -- while the write is still back-pressured by tx_busy
-    read_thread : process
-        variable v_resp  : std_logic_vector(1 downto 0);
-        variable v_rdata : std_logic_vector(31 downto 0);
+    -- sole driver of the AR/R channel signals, for the whole simulation
+    read_driver : process
     begin
-        wait until start_overlap = '1';
-        wait for 2 ns;
-        axi_read(ADDR_STATUS, v_rdata, v_resp);
-        resp3_read <= v_resp;
-        read3_done <= '1';
-        wait;
+        loop
+            wait until rd_req = '1';
+            wait until rising_edge(aclk); wait for 1 ns;
+            arvalid <= '1'; araddr <= rd_addr; rready <= '1';
+            while rvalid /= '1' loop
+                wait until rising_edge(aclk); wait for 1 ns;
+            end loop;
+            rd_data <= rdata; rd_resp <= rresp;
+            wait until rising_edge(aclk); wait for 1 ns;
+            arvalid <= '0'; rready <= '0';
+            rd_done <= '1';
+            wait until rd_req = '0';
+            rd_done <= '0';
+        end loop;
     end process;
 
     stim : process
@@ -155,9 +190,6 @@ begin
         variable v_rdata : std_logic_vector(31 downto 0);
     begin
         aresetn <= '0';
-        awvalid <= '0'; awaddr <= (others => '0');
-        wvalid <= '0'; wdata <= (others => '0'); wstrb <= (others => '0'); bready <= '0';
-        arvalid <= '0'; araddr <= (others => '0'); rready <= '0';
         rx_byte_valid <= '0'; rx_byte_data <= (others => '0');
         wait until rising_edge(aclk);
         wait until rising_edge(aclk);
@@ -166,28 +198,33 @@ begin
         wait until rising_edge(aclk);
 
         -- 1. plain register write + read-back
-        axi_write(ADDR_CTRL, x"00000001", v_resp);
+        axi_write(wr_req, wr_addr, wr_data, wr_done, wr_resp, ADDR_CTRL, x"00000001", v_resp);
         check(v_resp = RESP_OKAY, "CTRL write returns OKAY");
-        axi_read(ADDR_CTRL, v_rdata, v_resp);
+        axi_read(rd_req, rd_addr, rd_done, rd_data, rd_resp, ADDR_CTRL, v_rdata, v_resp);
         check(v_resp = RESP_OKAY and v_rdata = x"00000001", "CTRL read-back == 1");
 
         -- 2. TXDATA write that collides with tx_busy -> WREADY back-pressure
-        axi_write(ADDR_TXDATA, x"00000055", v_resp);
+        axi_write(wr_req, wr_addr, wr_data, wr_done, wr_resp, ADDR_TXDATA, x"00000055", v_resp);
         check(v_resp = RESP_OKAY, "first TXDATA write OKAY, tx_busy now set");
-        axi_read(ADDR_STATUS, v_rdata, v_resp);
+        axi_read(rd_req, rd_addr, rd_done, rd_data, rd_resp, ADDR_STATUS, v_rdata, v_resp);
         check(v_rdata(0) = '1', "STATUS.tx_busy == 1 right after TXDATA write");
 
         -- 3. second TXDATA write overlapped with an independent STATUS read:
         --    the read channel is NOT blocked by the write channel's wait,
         --    unlike the AHB version where only one transfer can be in flight.
-        write3_done <= '0'; read3_done <= '0';
-        start_overlap <= '1';
-        wait for 1 ns;
-        start_overlap <= '0';
-        wait until write3_done = '1' and read3_done = '1';
-        check(resp3_read = RESP_OKAY, "STATUS read (read channel) completes independently");
-        check(resp3_write = RESP_OKAY, "second TXDATA write eventually OKAY once tx_busy clears");
-        axi_read(ADDR_TXDATA, v_rdata, v_resp);
+        --    write_driver/read_driver are independent processes, so just
+        --    kicking both requests a couple ns apart gives genuine overlap.
+        wr_addr <= ADDR_TXDATA; wr_data <= x"00000066";
+        wr_req <= '1';
+        wait for 2 ns;
+        rd_addr <= ADDR_STATUS;
+        rd_req <= '1';
+        wait until wr_done = '1' and rd_done = '1';
+        check(rd_resp = RESP_OKAY, "STATUS read (read channel) completes independently");
+        check(wr_resp = RESP_OKAY, "second TXDATA write eventually OKAY once tx_busy clears");
+        wr_req <= '0'; rd_req <= '0';
+        wait until wr_done = '0' and rd_done = '0';
+        axi_read(rd_req, rd_addr, rd_done, rd_data, rd_resp, ADDR_TXDATA, v_rdata, v_resp);
         check(v_rdata = x"00000066", "TXDATA committed only after back-pressure cleared");
 
         -- 4. RX byte arrival + read, non-blocking status model
@@ -195,26 +232,27 @@ begin
         rx_byte_valid <= '1'; rx_byte_data <= x"A5";
         wait until rising_edge(aclk); wait for 1 ns;
         rx_byte_valid <= '0';
-        axi_read(ADDR_STATUS, v_rdata, v_resp);
+        axi_read(rd_req, rd_addr, rd_done, rd_data, rd_resp, ADDR_STATUS, v_rdata, v_resp);
         check(v_rdata(1) = '1', "STATUS.rx_ready == 1 after byte arrival");
-        axi_read(ADDR_RXDATA, v_rdata, v_resp);
+        axi_read(rd_req, rd_addr, rd_done, rd_data, rd_resp, ADDR_RXDATA, v_rdata, v_resp);
         check(v_rdata = x"000000A5", "RXDATA read == 0xA5");
-        axi_read(ADDR_STATUS, v_rdata, v_resp);
+        axi_read(rd_req, rd_addr, rd_done, rd_data, rd_resp, ADDR_STATUS, v_rdata, v_resp);
         check(v_rdata(1) = '0', "STATUS.rx_ready == 0 after RXDATA read (cleared)");
 
         -- 5. bad address -> SLVERR on both channels
-        axi_read(ADDR_BAD, v_rdata, v_resp);
+        axi_read(rd_req, rd_addr, rd_done, rd_data, rd_resp, ADDR_BAD, v_rdata, v_resp);
         check(v_resp = RESP_ERROR, "out-of-range read returns RRESP=SLVERR");
-        axi_write(ADDR_BAD, x"0000DEAD", v_resp);
+        axi_write(wr_req, wr_addr, wr_data, wr_done, wr_resp, ADDR_BAD, x"0000DEAD", v_resp);
         check(v_resp = RESP_ERROR, "out-of-range write returns BRESP=SLVERR");
 
         -- post-error access must work normally again
-        axi_read(ADDR_CTRL, v_rdata, v_resp);
+        axi_read(rd_req, rd_addr, rd_done, rd_data, rd_resp, ADDR_CTRL, v_rdata, v_resp);
         check(v_resp = RESP_OKAY and v_rdata = x"00000001", "FSM recovers to normal OKAY access after SLVERR");
 
         report "==== AXI-Lite UART slave wrapper: " & integer'image(pass_count) &
                " passed, " & integer'image(fail_count) & " failed ====";
         assert fail_count = 0 report "simulation FAILED" severity failure;
+        finish;  -- clk_gen never stops on its own; tell the simulator we're done
         wait;
     end process;
 

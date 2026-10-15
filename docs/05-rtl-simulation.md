@@ -2,7 +2,8 @@
 
 針對 UART SIP 的暫存器檔（CTRL/STATUS/TXDATA/RXDATA），實作
 [01-ahb-wrapper-fsm.md](01-ahb-wrapper-fsm.md) 與 [02-axi-wrapper-fsm.md](02-axi-wrapper-fsm.md)
-裡的 **AHB 與 AXI-Lite slave wrapper FSM**。
+裡的 **AHB 與 AXI-Lite slave wrapper FSM**，課程規定用 VHDL，模擬用實驗室慣用的
+**Vivado 2018.2 xsim**（板子是 EGO-XZ7，Zynq-7000）。
 
 ## 範圍
 
@@ -33,33 +34,98 @@
 
 ## 怎麼跑
 
-需要 [GHDL](https://ghdl.github.io/ghdl/)（`winget install GHDL.GHDL`，Linux 上可用
-`apt install ghdl`）：
+需要 Vivado（實驗室用的是 2018.2；`xvhdl`/`xelab`/`xsim` 要在 PATH 上，Windows 下即
+`<Vivado 安裝路徑>\2018.2\bin`）：
 
 ```sh
 sim/run_sims.sh
 ```
 
-或手動：
+或手動（以 AHB 為例，AXI 版同樣流程）：
 
 ```sh
-ghdl -a --std=08 rtl/ahb_uart_slave_wrapper.vhd sim/tb_ahb_uart_slave_wrapper.vhd
-ghdl -e --std=08 tb_ahb_uart_slave_wrapper
-ghdl -r --std=08 tb_ahb_uart_slave_wrapper --vcd=sim/ahb_uart_slave_wrapper.vcd
-
-ghdl -a --std=08 rtl/axi_lite_uart_slave_wrapper.vhd sim/tb_axi_lite_uart_slave_wrapper.vhd
-ghdl -e --std=08 tb_axi_lite_uart_slave_wrapper
-ghdl -r --std=08 tb_axi_lite_uart_slave_wrapper --vcd=sim/axi_lite_uart_slave_wrapper.vcd
+xvhdl --2008 rtl/ahb_uart_slave_wrapper.vhd sim/tb_ahb_uart_slave_wrapper.vhd
+xelab tb_ahb_uart_slave_wrapper -s ahb_sim
+xsim ahb_sim -R
 ```
 
 每個 testbench 都會自我檢查（每項檢查 `report [PASS]/[FAIL]`，有失敗就 `severity failure`），
-並匯出 `.vcd` 波形，想直接看 FSM 狀態轉換的話可以用 GTKWave 開。AXI 版用 `start_overlap` 訊號
-搭配兩個 process（`write_thread`/`read_thread`）模擬「write 被 back-pressure 時，read channel
-仍能獨立完成」這件事，對應原本 Verilog 版的 `fork`/`join`。
+跑完呼叫 `std.env.finish` 讓 xsim 自己結束（不然 `clk_gen` 一直跑，模擬永遠不會自然停）。AXI 版
+用兩個常駐的 `write_driver`/`read_driver` process 分別獨佔 AW/W/B 跟 AR/R 兩組訊號，`stim`
+process 只透過 `wr_req`/`rd_req` 兩個簡單的 handshake 訊號下指令——這樣兩個 process 天生就是
+並行的，不需要再另外搞一個 `fork`/`join` 等價物，也借此避免「兩個 process 都去 drive 同一條
+AXI 訊號」這種 VHDL 多重 driver 衝突（細節見 testbench 檔頭註解）。
 
-## 目前狀態
+## 結果（已在 Vivado 2018.2 xsim 上跑過，全部通過）
 
-這兩個 wrapper 原本是用 Verilog 寫的，邏輯在 Icarus Verilog 12.0 下對著同一組測項跑過
-28/28 全過；這次照課程規定翻成 VHDL（狀態機、暫存器模型、testbench 都是逐項對應翻譯，行為應該
-一致），但這台機器目前沒有裝 GHDL，**VHDL 版本還沒有實際跑過模擬**。等裝好模擬器會補跑一次，
-確認翻譯後一樣能通過全部測項。
+### AHB UART slave wrapper — `sim/tb_ahb_uart_slave_wrapper.vhd`
+
+涵蓋：一般的 OKAY 讀寫、背靠背的 pipelined 傳輸（`NONSEQ→NONSEQ`）、TXDATA 寫入撞上 `tx_busy`
+時插入 `WAIT`、RX 資料到達後讀取的流程，以及位址超出範圍時 2-cycle 的 `ERROR` 回應、之後恢復
+正常存取。
+
+```
+Note: [PASS] CTRL write returns OKAY                                            Time: 66 ns
+Note: [PASS] CTRL read-back == 1                                                Time: 96 ns
+Note: [PASS] xfer1 (STATUS) completes same cycle xfer2 address phase issued     Time: 116 ns
+Note: [PASS] xfer1 STATUS resp OKAY                                             Time: 116 ns
+Note: [PASS] pipelined xfer2 (CTRL) read-back == 1                              Time: 126 ns
+Note: [PASS] first TXDATA write OKAY, tx_busy now set                          Time: 166 ns
+Note: [PASS] STATUS.tx_busy == 1 right after TXDATA write                      Time: 196 ns
+Note: [PASS] second TXDATA write (into WAIT) eventually OKAY                   Time: 226 ns
+Note: [PASS] TXDATA committed only after wait states cleared                   Time: 256 ns
+Note: [PASS] STATUS.tx_busy == 0 after TX finished                             Time: 286 ns
+Note: [PASS] STATUS.rx_ready == 1 after byte arrival                           Time: 336 ns
+Note: [PASS] RXDATA read == 0xA5                                               Time: 366 ns
+Note: [PASS] STATUS.rx_ready == 0 after RXDATA read (cleared)                  Time: 396 ns
+Note: [PASS] out-of-range address returns HRESP=ERROR                         Time: 446 ns
+Note: [PASS] FSM recovers to normal OKAY access after ERROR                   Time: 476 ns
+
+==== AHB UART slave wrapper: 15 passed, 0 failed ====
+```
+
+### AXI-Lite UART slave wrapper — `sim/tb_axi_lite_uart_slave_wrapper.vhd`
+
+涵蓋跟 AHB 版一樣的情境，再加上 MSC 文件裡提到的協定差異：獨立的 `STATUS` 讀取（read
+channel）**不用等** write channel 上被 back-pressure 的 TXDATA 寫入完成就能完成。
+
+```
+Note: [PASS] CTRL write returns OKAY                                           Time: 76 ns
+Note: [PASS] CTRL read-back == 1                                               Time: 106 ns
+Note: [PASS] first TXDATA write OKAY, tx_busy now set                         Time: 146 ns
+Note: [PASS] STATUS.tx_busy == 1 right after TXDATA write                     Time: 176 ns
+Note: [PASS] STATUS read (read channel) completes independently               Time: 216 ns
+Note: [PASS] second TXDATA write eventually OKAY once tx_busy clears          Time: 216 ns
+Note: [PASS] TXDATA committed only after back-pressure cleared                Time: 246 ns
+Note: [PASS] STATUS.rx_ready == 1 after byte arrival                          Time: 296 ns
+Note: [PASS] RXDATA read == 0xA5                                              Time: 326 ns
+Note: [PASS] STATUS.rx_ready == 0 after RXDATA read (cleared)                 Time: 356 ns
+Note: [PASS] out-of-range read returns RRESP=SLVERR                           Time: 386 ns
+Note: [PASS] out-of-range write returns BRESP=SLVERR                         Time: 426 ns
+Note: [PASS] FSM recovers to normal OKAY access after SLVERR                 Time: 456 ns
+
+==== AXI-Lite UART slave wrapper: 13 passed, 0 failed ====
+```
+
+兩個測試套件在 Vivado 2018.2 xsim 下全部通過（28/28 項檢查），跟原本 Verilog 版本
+（Icarus Verilog 12.0 下 28/28）結果一致——時間戳記也幾乎完全對得上，代表翻譯過程沒有
+改變任何時序行為。
+
+### 翻譯過程中遇到的一個真實問題
+
+第一次照 Verilog task 的寫法直接翻成 VHDL procedure 時（procedure 內直接存取外層 architecture
+的訊號並賦值），`xvhdl` 直接報錯：`cannot assign signal ... from within a subprogram`。VHDL
+的規則跟 Verilog task 不一樣：procedure 只能透過**明確宣告的 signal-class 參數**去驅動訊號，
+不能像 Verilog task 那樣直接賦值給外層作用域的訊號。兩個 testbench 的 `ahb_write`/`ahb_read`/
+`axi_write`/`axi_read` 都補上了完整的 signal 參數列表才能通過編譯。
+
+AXI 版還有第二個更隱晦的問題：原本設計是 `stim` process 跟兩個一次性的 `write_thread`/
+`read_thread` process 都呼叫同一個會驅動 AXI 訊號的 procedure——這樣等於同一條訊號（例如
+`awvalid`）同時有兩個不同 process 在當 driver。VHDL 的 resolved signal 允許多重 driver，但
+沒有 process 在「主動」驅動時，driver 還是會保留它最後一次指定的值；當另一個 process 真的
+開始驅動（例如設成 `'1'`）時，兩個 driver 的值衝突（`'0'` 跟 `'1'`）就會被解析成 `'X'`，讓
+後續的握手邏輯永遠等不到正確的值，模擬卡住、`xsim` 一直不會結束（但看起來像是「跑得很慢」，
+不會立即報錯）。這點在 Icarus Verilog 的 `fork`/`join` 寫法下不會發生，因為 Verilog 是
+procedural assignment、沒有 VHDL 這種多重 driver 解析語意。修法是讓每個 AXI channel 從頭到尾
+都只有一個常駐 process 在驅動（`write_driver`/`read_driver`），`stim` 改成只透過簡單的
+`req`/`done` 訊號下指令，不直接碰 AXI 訊號本身。
