@@ -5,11 +5,13 @@ AXI 上。跟 AHB 單一共享的位址/資料匯流排不同，AXI 有 5 個獨
 所以 wrapper 自然會拆成 master 端與 slave 端各自獨立的 **write FSM** 和 **read FSM** — 它們可以
 並行運作。
 
+<!--
 ## 系統拓樸
 
 ![AXI 系統拓樸](../Upload/image/axi_topology.drawio.png)
 🔍 [看大圖](https://raw.githubusercontent.com/shj-F115112128/SOC_Practice/main/Upload/image/axi_topology.drawio.png) ／
 原始檔：[Upload/axi_topology.drawio](../Upload/axi_topology.drawio)
+-->
 
 ## 1. AXI Slave Wrapper FSM（UART 暫存器檔）
 

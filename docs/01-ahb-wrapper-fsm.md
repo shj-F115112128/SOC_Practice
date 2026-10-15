@@ -11,11 +11,13 @@
 slave），中間需要一個 **arbiter（仲裁器）** 與 **address decoder（位址解碼器）**，這是 AHB
 規格書裡多層/共享匯流排拓樸的標準做法。
 
+<!--
 ## 系統拓樸
 
 ![AHB 系統拓樸](../Upload/image/ahb_topology.drawio.png)
 🔍 [看大圖](https://raw.githubusercontent.com/shj-F115112128/SOC_Practice/main/Upload/image/ahb_topology.drawio.png) ／
 原始檔：[Upload/ahb_topology.drawio](../Upload/ahb_topology.drawio)
+-->
 
 ## 1. AHB Slave Wrapper FSM（UART 暫存器檔）
 
