@@ -1,0 +1,67 @@
+<mxfile host="Electron">
+  <diagram name="HW2_AOV" id="hw2aov001">
+    <mxGraphModel dx="1448" dy="693" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1480" pageHeight="660" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="stage_輸入介面 (Input)" parent="1" style="whiteSpace=wrap;html=1;verticalAlign=top;align=left;dashed=1;strokeColor=#999999;fontColor=#666666;fontSize=13;spacingLeft=8;spacingTop=6;" value="輸入介面 (Input)" vertex="1">
+          <mxGeometry height="515" width="260" x="40" y="40" as="geometry" />
+        </mxCell>
+        <mxCell id="stage_控制/運算 (Control &amp; Compute)" parent="1" style="whiteSpace=wrap;html=1;verticalAlign=top;align=left;dashed=1;strokeColor=#999999;fontColor=#666666;fontSize=13;spacingLeft=8;spacingTop=6;" value="控制/運算 (Control &amp;amp; Compute)" vertex="1">
+          <mxGeometry height="515" width="760" x="340" y="40" as="geometry" />
+        </mxCell>
+        <mxCell id="stage_輸出介面 (Output)" parent="1" style="whiteSpace=wrap;html=1;verticalAlign=top;align=left;dashed=1;strokeColor=#999999;fontColor=#666666;fontSize=13;spacingLeft=8;spacingTop=6;" value="輸出介面 (Output)" vertex="1">
+          <mxGeometry height="515" width="260" x="1180" y="40" as="geometry" />
+        </mxCell>
+        <mxCell id="S4" parent="1" style="ellipse;whiteSpace=wrap;html=1;verticalAlign=middle;align=center;fillColor=#DCEBFA;strokeColor=#5B9BD5;strokeWidth=3;fontColor=#222222;" value="&lt;div&gt;&lt;font style=&quot;font-size: 14px;&quot;&gt;&lt;b&gt;S4 按鍵&lt;/b&gt;&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font style=&quot;font-size: 12px;&quot;&gt;(video_in 類比)&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font style=&quot;font-size: 12px;&quot;&gt;GPIO 1bit, async&lt;/font&gt;&lt;/div&gt;" vertex="1">
+          <mxGeometry height="190" width="190" x="75" y="65" as="geometry" />
+        </mxCell>
+        <mxCell id="TTC" parent="1" style="ellipse;whiteSpace=wrap;html=1;verticalAlign=middle;align=center;fillColor=#DCEBFA;strokeColor=#5B9BD5;strokeWidth=3;fontColor=#222222;" value="&lt;div&gt;&lt;font style=&quot;font-size: 14px;&quot;&gt;&lt;b&gt;TTC0 tick&lt;/b&gt;&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font style=&quot;font-size: 12px;&quot;&gt;(video_in 類比)&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font style=&quot;font-size: 12px;&quot;&gt;10kHz, 100us/tick&lt;/font&gt;&lt;/div&gt;" vertex="1">
+          <mxGeometry height="190" width="190" x="75" y="315" as="geometry" />
+        </mxCell>
+        <mxCell id="DEB" parent="1" style="ellipse;whiteSpace=wrap;html=1;verticalAlign=middle;align=center;fillColor=#E6DCF5;strokeColor=#8862C4;strokeWidth=3;fontColor=#222222;" value="&lt;div&gt;&lt;font style=&quot;font-size: 14px;&quot;&gt;&lt;b&gt;Debounce&lt;/b&gt;&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font style=&quot;font-size: 12px;&quot;&gt;(preprocess)&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font style=&quot;font-size: 12px;&quot;&gt;200ms gate&lt;/font&gt;&lt;/div&gt;" vertex="1">
+          <mxGeometry height="180" width="180" x="370" y="70" as="geometry" />
+        </mxCell>
+        <mxCell id="MODE" parent="1" style="ellipse;whiteSpace=wrap;html=1;verticalAlign=middle;align=center;fillColor=#FCE0EA;strokeColor=#D6699B;strokeWidth=3;fontColor=#222222;" value="&lt;div&gt;&lt;font style=&quot;font-size: 14px;&quot;&gt;&lt;b&gt;g_Mode&lt;/b&gt;&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font style=&quot;font-size: 12px;&quot;&gt;(buffer 類比)&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font style=&quot;font-size: 12px;&quot;&gt;FIXED / BREATH&lt;/font&gt;&lt;/div&gt;" vertex="1">
+          <mxGeometry height="180" width="180" x="650" y="70" as="geometry" />
+        </mxCell>
+        <mxCell id="PWM" parent="1" style="ellipse;whiteSpace=wrap;html=1;verticalAlign=middle;align=center;fillColor=#FCE0EA;strokeColor=#D6699B;strokeWidth=3;fontColor=#222222;" value="&lt;div&gt;&lt;font style=&quot;font-size: 14px;&quot;&gt;&lt;b&gt;pwm_counter /&lt;/b&gt;&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font style=&quot;font-size: 12px;&quot;&gt;breath_step&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font style=&quot;font-size: 12px;&quot;&gt;(buffer 類比)&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font style=&quot;font-size: 12px;&quot;&gt;0~99 / 0~199&lt;/font&gt;&lt;/div&gt;" vertex="1">
+          <mxGeometry height="180" width="180" x="650" y="320" as="geometry" />
+        </mxCell>
+        <mxCell id="BRIGHT" parent="1" style="ellipse;whiteSpace=wrap;html=1;verticalAlign=middle;align=center;fillColor=#DFF3DC;strokeColor=#6FAE5E;strokeWidth=3;fontColor=#222222;" value="&lt;div&gt;&lt;font style=&quot;font-size: 14px;&quot;&gt;&lt;b&gt;ComputeBrightness&lt;/b&gt;&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font style=&quot;font-size: 12px;&quot;&gt;(user_ip)&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font style=&quot;font-size: 12px;&quot;&gt;三角波 0~99&lt;/font&gt;&lt;/div&gt;" vertex="1">
+          <mxGeometry height="180" width="180" x="910" y="210" as="geometry" />
+        </mxCell>
+        <mxCell id="LED0" parent="1" style="ellipse;whiteSpace=wrap;html=1;verticalAlign=middle;align=center;fillColor=#DCEBFA;strokeColor=#5B9BD5;strokeWidth=3;fontColor=#222222;" value="&lt;div&gt;&lt;font style=&quot;font-size: 14px;&quot;&gt;&lt;b&gt;LED0&lt;/b&gt;&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font style=&quot;font-size: 12px;&quot;&gt;(video_out 類比)&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font style=&quot;font-size: 12px;&quot;&gt;GPIO 1bit&lt;/font&gt;&lt;/div&gt;" vertex="1">
+          <mxGeometry height="180" width="180" x="1220" y="207.5" as="geometry" />
+        </mxCell>
+        <mxCell id="e1" edge="1" parent="1" source="S4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#888888;fontSize=11;jumpStyle=arc;" target="DEB" value="async edge&lt;br&gt;1bit">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e2" edge="1" parent="1" source="DEB" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#888888;fontSize=11;jumpStyle=arc;" target="MODE" value="mode toggle,1bit&lt;br&gt;≥200ms interval">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e3" edge="1" parent="1" source="TTC" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#888888;fontSize=11;jumpStyle=arc;" target="PWM" value="100us/tick&lt;br&gt;counter++">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e4" edge="1" parent="1" source="TTC" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;strokeColor=#888888;fontSize=11;jumpStyle=arc;" target="BRIGHT" value="100us/tick&lt;br&gt;觸發亮度計算">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e5" edge="1" parent="1" source="PWM" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#888888;fontSize=11;jumpStyle=arc;" target="BRIGHT" value="8bit index(0~199)&lt;br&gt;10ms/breath-step">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e6" edge="1" parent="1" source="MODE" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#888888;fontSize=11;jumpStyle=arc;" target="BRIGHT" value="1bit&lt;br&gt;mode select">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e7" edge="1" parent="1" source="MODE" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeColor=#888888;fontSize=11;jumpStyle=arc;" target="PWM" value="mode 變化&lt;br&gt;→ reset 脈衝">
+          <mxGeometry relative="1" x="0.0349" as="geometry" />
+        </mxCell>
+        <mxCell id="e8" edge="1" parent="1" source="BRIGHT" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#888888;fontSize=11;jumpStyle=arc;" target="LED0" value="1bit PWM輸出&lt;br&gt;100us/tick">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="note" parent="1" style="whiteSpace=wrap;html=1;align=left;verticalAlign=top;fontSize=12;fontColor=#666666;" value="備註：本圖借用論文 AOV 的節點/邊規則，套用在中斷驅動的嵌入式控制系統，非逐字沿用影像串流管線語意。S4/TTC0 類比論文的 video_in（固定時序輸入活動）；LED0 類比 video_out；g_Mode 與 pwm_counter/breath_step 是會被後續活動重複讀取的狀態記憶體，借用 pingpong_buffer 的粉紅色表示「緩衝/狀態儲存」語意，但不是論文原定義的雙緩衝交替讀寫機制；ComputeBrightness 類比 user_ip（使用者定義的運算核心）。本設計沒有 DDR 層級，故不出現黃色 ddr 節點。節點顏色仍嚴格由 node_type 唯一決定（規則1），Debounce 做為 preprocess 吸收了 S4 與 g_Mode 之間 1bit async→1bit 已格式一致、本可省略轉換節點，這裡保留是因為它確實是論文定義下的獨立可排程活動（防彈跳判斷），不是格式轉換（規則2僅要求格式/位寬不同時才強制插入，這裡是額外保留的語意節點）。" vertex="1">
+          <mxGeometry height="100" width="1400" x="40" y="555" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
