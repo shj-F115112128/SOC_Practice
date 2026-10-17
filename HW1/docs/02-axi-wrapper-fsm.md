@@ -9,7 +9,7 @@ AXI 上。跟 AHB 單一共享的位址/資料匯流排不同，AXI 有 5 個獨
 ## 系統拓樸
 
 ![AXI 系統拓樸](../Upload/image/axi_topology.drawio.png)
-🔍 [看大圖](https://raw.githubusercontent.com/shj-F115112128/SOC_Practice/main/Upload/image/axi_topology.drawio.png) ／
+🔍 [看大圖](https://raw.githubusercontent.com/shj-F115112128/SOC_Practice/main/HW1/Upload/image/axi_topology.drawio.png) ／
 原始檔：[Upload/axi_topology.drawio](../Upload/axi_topology.drawio)
 -->
 
@@ -18,7 +18,7 @@ AXI 上。跟 AHB 單一共享的位址/資料匯流排不同，AXI 有 5 個獨
 Write 跟 read 兩條 channel FSM 畫在同一張圖裡：
 
 ![AXI Slave Wrapper FSM](../Upload/image/axi_slave_fsm.drawio.png)
-🔍 [看大圖](https://raw.githubusercontent.com/shj-F115112128/SOC_Practice/main/Upload/image/axi_slave_fsm.drawio.png) ／
+🔍 [看大圖](https://raw.githubusercontent.com/shj-F115112128/SOC_Practice/main/HW1/Upload/image/axi_slave_fsm.drawio.png) ／
 原始檔：[Upload/axi_slave_fsm.drawio](../Upload/axi_slave_fsm.drawio)（write 路徑的 WVALID
 握手跟寫入暫存器併在同一個 `WDATA→RESP` 轉換裡，沒有另外畫一個 `WRITE_REG` 狀態）
 
@@ -30,7 +30,7 @@ Write 與 read 兩條 DMA 路徑是各自獨立的狀態機 — DMA 引擎可以
 write（RX FIFO → 記憶體）跟 read（記憶體 → TX FIFO）兩條 DMA 路徑一樣畫在同一張圖：
 
 ![AXI Master (DMA) Wrapper FSM](../Upload/image/axi_master_fsm.drawio.png)
-🔍 [看大圖](https://raw.githubusercontent.com/shj-F115112128/SOC_Practice/main/Upload/image/axi_master_fsm.drawio.png) ／
+🔍 [看大圖](https://raw.githubusercontent.com/shj-F115112128/SOC_Practice/main/HW1/Upload/image/axi_master_fsm.drawio.png) ／
 原始檔：[Upload/axi_master_fsm.drawio](../Upload/axi_master_fsm.drawio)
 
 **write 路徑是真的刻成 RTL 並驗證過的**（`rtl/axi_uart_master_wrapper.vhd`，真正的 AXI4 INCR

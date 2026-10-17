@@ -13,3 +13,4 @@ xsim.log
 xsim_*.backup.log
 xvhdl.log
 xvhdl.pb
+.$*.drawio.bkp

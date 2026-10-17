@@ -6,7 +6,7 @@
 再把記憶體裡的資料讀回來。
 
 ![MSC - AHB](../Upload/image/ahb_msc.drawio.png)
-🔍 [看大圖](https://raw.githubusercontent.com/shj-F115112128/SOC_Practice/main/Upload/image/ahb_msc.drawio.png) ／
+🔍 [看大圖](https://raw.githubusercontent.com/shj-F115112128/SOC_Practice/main/HW1/Upload/image/ahb_msc.drawio.png) ／
 原始檔：[Upload/ahb_msc.drawio](../Upload/ahb_msc.drawio)
 
 ## 四個階段

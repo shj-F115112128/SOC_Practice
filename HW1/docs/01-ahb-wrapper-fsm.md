@@ -15,7 +15,7 @@ slave），中間需要一個 **arbiter（仲裁器）** 與 **address decoder�
 ## 系統拓樸
 
 ![AHB 系統拓樸](../Upload/image/ahb_topology.drawio.png)
-🔍 [看大圖](https://raw.githubusercontent.com/shj-F115112128/SOC_Practice/main/Upload/image/ahb_topology.drawio.png) ／
+🔍 [看大圖](https://raw.githubusercontent.com/shj-F115112128/SOC_Practice/main/HW1/Upload/image/ahb_topology.drawio.png) ／
 原始檔：[Upload/ahb_topology.drawio](../Upload/ahb_topology.drawio)
 -->
 
@@ -27,7 +27,7 @@ slave），中間需要一個 **arbiter（仲裁器）** 與 **address decoder�
 `ERROR`。
 
 ![AHB Slave Wrapper FSM](../Upload/image/ahb_slave_fsm.drawio.png)
-🔍 [看大圖](https://raw.githubusercontent.com/shj-F115112128/SOC_Practice/main/Upload/image/ahb_slave_fsm.drawio.png) ／
+🔍 [看大圖](https://raw.githubusercontent.com/shj-F115112128/SOC_Practice/main/HW1/Upload/image/ahb_slave_fsm.drawio.png) ／
 原始檔：[Upload/ahb_slave_fsm.drawio](../Upload/ahb_slave_fsm.drawio)
 
 ## 2. AHB Master Wrapper FSM（UART 內部 DMA）
@@ -36,7 +36,7 @@ slave），中間需要一個 **arbiter（仲裁器）** 與 **address decoder�
 在驅動任何位址階段之前，必須先向 arbiter 要求匯流排。
 
 ![AHB Master (DMA) Wrapper FSM](../Upload/image/ahb_master_fsm.drawio.png)
-🔍 [看大圖](https://raw.githubusercontent.com/shj-F115112128/SOC_Practice/main/Upload/image/ahb_master_fsm.drawio.png) ／
+🔍 [看大圖](https://raw.githubusercontent.com/shj-F115112128/SOC_Practice/main/HW1/Upload/image/ahb_master_fsm.drawio.png) ／
 原始檔：[Upload/ahb_master_fsm.drawio](../Upload/ahb_master_fsm.drawio)（SEQ 狀態的自迴圈已把
 「FIFO 未 ready 時插入 BUSY 拍」併進去，不另外畫成一個狀態）
 
@@ -47,7 +47,7 @@ slave），中間需要一個 **arbiter（仲裁器）** 與 **address decoder�
 master 自行解除請求）。
 
 ![AHB Arbiter FSM](../Upload/image/ahb_arbiter_fsm.drawio.png)
-🔍 [看大圖](https://raw.githubusercontent.com/shj-F115112128/SOC_Practice/main/Upload/image/ahb_arbiter_fsm.drawio.png) ／
+🔍 [看大圖](https://raw.githubusercontent.com/shj-F115112128/SOC_Practice/main/HW1/Upload/image/ahb_arbiter_fsm.drawio.png) ／
 原始檔：[Upload/ahb_arbiter_fsm.drawio](../Upload/ahb_arbiter_fsm.drawio)
 
 ## 多 Slave 補充說明

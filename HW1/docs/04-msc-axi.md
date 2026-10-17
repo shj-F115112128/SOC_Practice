@@ -6,7 +6,7 @@
 狀態。
 
 ![MSC - AXI](../Upload/image/axi_msc.drawio.png)
-🔍 [看大圖](https://raw.githubusercontent.com/shj-F115112128/SOC_Practice/main/Upload/image/axi_msc.drawio.png) ／
+🔍 [看大圖](https://raw.githubusercontent.com/shj-F115112128/SOC_Practice/main/HW1/Upload/image/axi_msc.drawio.png) ／
 原始檔：[Upload/axi_msc.drawio](../Upload/axi_msc.drawio)
 
 ## 四個階段
