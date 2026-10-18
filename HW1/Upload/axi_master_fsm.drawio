@@ -1,6 +1,6 @@
 <mxfile host="Electron">
   <diagram id="aximaster001" name="AXI Master (DMA) Wrapper FSM">
-    <mxGraphModel dx="1795" dy="1064" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1000" pageHeight="620" math="0" shadow="0">
+    <mxGraphModel dx="1457" dy="864" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1000" pageHeight="620" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
@@ -19,7 +19,7 @@
         <mxCell id="6oowvzKLN4WRjPyRsI01-1" edge="1" parent="1" source="bwait" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;curved=1;curveGeometry=1;" target="widle">
           <mxGeometry relative="1" x="-0.003" as="geometry" />
         </mxCell>
-        <mxCell id="6oowvzKLN4WRjPyRsI01-2" connectable="0" parent="6oowvzKLN4WRjPyRsI01-1" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" value="&lt;span style=&quot;color: light-dark(rgb(164, 164, 164), rgb(204, 204, 204));&quot;&gt;&lt;font style=&quot;font-size: 12px;&quot;&gt;⑤ BVALID&amp;amp;BREADY&lt;br&gt;（OKAY：清除 RX 旗標；SLVERR：設定錯誤狀態）&lt;/font&gt;&lt;/span&gt;" vertex="1">
+        <mxCell id="6oowvzKLN4WRjPyRsI01-2" connectable="0" parent="6oowvzKLN4WRjPyRsI01-1" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" value="&lt;font style=&quot;font-size: 12px; color: light-dark(rgb(164, 164, 164), rgb(102, 102, 102));&quot;&gt;⑤ BVALID&amp;amp;BREADY&lt;br&gt;（OKAY：清除 RX 旗標；SLVERR：設定錯誤狀態）&lt;/font&gt;" vertex="1">
           <mxGeometry relative="1" x="0.1195" y="2" as="geometry">
             <mxPoint x="34" y="-28" as="offset" />
           </mxGeometry>
@@ -27,7 +27,7 @@
         <mxCell id="bwait" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#FFF6E0;strokeColor=#C79A2E;fontColor=#8A6D1E;fontSize=14;fontStyle=1;" value="&lt;font style=&quot;font-size: 16px;&quot;&gt;BWAIT&lt;/font&gt;" vertex="1">
           <mxGeometry height="116" width="116" x="275" y="386" as="geometry" />
         </mxCell>
-        <mxCell id="we1" edge="1" parent="1" source="widle" style="curved=1;endArrow=block;html=1;strokeColor=light-dark(#999999,#CCCCCC);fontSize=11;fontColor=#555555;entryX=0;entryY=0.5;entryDx=0;entryDy=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;" target="aw" value="&lt;span style=&quot;color: light-dark(rgb(0, 0, 0), rgb(204, 204, 204));&quot;&gt;&lt;font style=&quot;font-size: 12px;&quot;&gt;① 觸發 RX 門檻&lt;/font&gt;&lt;/span&gt;&lt;div&gt;&lt;span style=&quot;color: light-dark(rgb(0, 0, 0), rgb(204, 204, 204));&quot;&gt;&lt;font style=&quot;font-size: 12px;&quot;&gt;（assert AWVALID/AWADDR/AWLEN/AWBURST=INCR）&lt;/font&gt;&lt;/span&gt;&lt;/div&gt;">
+        <mxCell id="we1" edge="1" parent="1" source="widle" style="curved=1;endArrow=block;html=1;strokeColor=light-dark(#999999,#CCCCCC);fontSize=11;fontColor=#555555;entryX=0;entryY=0.5;entryDx=0;entryDy=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;" target="aw" value="&lt;font style=&quot;font-size: 12px; color: light-dark(rgb(0, 0, 0), rgb(102, 102, 102));&quot;&gt;① 觸發 RX 門檻&lt;/font&gt;&lt;div&gt;&lt;font style=&quot;font-size: 12px; color: light-dark(rgb(0, 0, 0), rgb(102, 102, 102));&quot;&gt;（assert AWVALID/AWADDR/AWLEN/AWBURST=INCR）&lt;/font&gt;&lt;/div&gt;">
           <mxGeometry relative="1" x="-0.0625" y="-29" as="geometry">
             <mxPoint as="offset" />
             <Array as="points">
@@ -35,7 +35,7 @@
             </Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="we2" edge="1" parent="1" source="aw" style="curved=1;endArrow=block;html=1;strokeColor=light-dark(#999999,#CCCCCC);fontSize=11;fontColor=#555555;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="w" value="&lt;span style=&quot;color: light-dark(rgb(0, 0, 0), rgb(204, 204, 204));&quot;&gt;&lt;font style=&quot;font-size: 12px;&quot;&gt;② AWVALID&amp;amp;AWREADY 握手&lt;/font&gt;&lt;/span&gt;">
+        <mxCell id="we2" edge="1" parent="1" source="aw" style="curved=1;endArrow=block;html=1;strokeColor=light-dark(#999999,#CCCCCC);fontSize=11;fontColor=#555555;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="w" value="&lt;font style=&quot;font-size: 12px; color: light-dark(rgb(0, 0, 0), rgb(102, 102, 102));&quot;&gt;② AWVALID&amp;amp;AWREADY 握手&lt;/font&gt;">
           <mxGeometry relative="1" x="0.264" y="-2" as="geometry">
             <mxPoint as="offset" />
             <Array as="points">
@@ -43,7 +43,7 @@
             </Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="we3" edge="1" parent="1" source="w" style="curved=1;endArrow=block;html=1;strokeColor=light-dark(#999999,#CCCCCC);fontSize=11;fontColor=#555555;exitX=1;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;edgeStyle=orthogonalEdgeStyle;innerLoopWaypoints=1;" target="w" value="&lt;span style=&quot;color: light-dark(rgb(0, 0, 0), rgb(204, 204, 204));&quot;&gt;&lt;font style=&quot;font-size: 12px;&quot;&gt;③ WVALID&amp;amp;WREADY&amp;amp;!WLAST&lt;/font&gt;&lt;/span&gt;">
+        <mxCell id="we3" edge="1" parent="1" source="w" style="curved=1;endArrow=block;html=1;strokeColor=light-dark(#999999,#CCCCCC);fontSize=11;fontColor=#555555;exitX=1;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;edgeStyle=orthogonalEdgeStyle;innerLoopWaypoints=1;" target="w" value="&lt;font style=&quot;font-size: 12px; color: light-dark(rgb(0, 0, 0), rgb(102, 102, 102));&quot;&gt;③ WVALID&amp;amp;WREADY&amp;amp;!WLAST&lt;/font&gt;">
           <mxGeometry relative="1" x="0.0629" y="-13" as="geometry">
             <mxPoint as="offset" />
             <Array as="points">
@@ -54,7 +54,7 @@
             <mxPoint x="853.99" y="425.7" as="targetPoint" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="we4" edge="1" parent="1" source="w" style="curved=1;endArrow=block;html=1;strokeColor=light-dark(#999999,#CCCCCC);fontSize=11;fontColor=#555555;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" target="bwait" value="&lt;span style=&quot;color: light-dark(rgb(0, 0, 0), rgb(204, 204, 204));&quot;&gt;&lt;font style=&quot;font-size: 12px;&quot;&gt;④ WVALID&amp;amp;WREADY&amp;amp;WLAST&lt;/font&gt;&lt;/span&gt;">
+        <mxCell id="we4" edge="1" parent="1" source="w" style="curved=1;endArrow=block;html=1;strokeColor=light-dark(#999999,#CCCCCC);fontSize=11;fontColor=#555555;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" target="bwait" value="&lt;font style=&quot;font-size: 12px; color: light-dark(rgb(164, 164, 164), rgb(102, 102, 102));&quot;&gt;④ WVALID&amp;amp;WREADY&amp;amp;WLAST&lt;/font&gt;">
           <mxGeometry relative="1" x="0.0324" y="-17" as="geometry">
             <mxPoint as="offset" />
             <Array as="points">
@@ -74,7 +74,7 @@
         <mxCell id="6oowvzKLN4WRjPyRsI01-4" edge="1" parent="1" source="r" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;curved=1;curveGeometry=1;" target="ridle">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="6oowvzKLN4WRjPyRsI01-5" connectable="0" parent="6oowvzKLN4WRjPyRsI01-4" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" value="&lt;span style=&quot;color: light-dark(rgb(164, 164, 164), rgb(204, 204, 204));&quot;&gt;&lt;font style=&quot;font-size: 12px;&quot;&gt;④ RVALID&amp;amp;RREADY&amp;amp;RLAST&lt;br&gt;（檢查 RRESP；SLVERR 中止剩餘推入）&lt;/font&gt;&lt;/span&gt;" vertex="1">
+        <mxCell id="6oowvzKLN4WRjPyRsI01-5" connectable="0" parent="6oowvzKLN4WRjPyRsI01-4" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" value="&lt;font style=&quot;font-size: 12px; color: light-dark(rgb(164, 164, 164), rgb(102, 102, 102));&quot;&gt;④ RVALID&amp;amp;RREADY&amp;amp;RLAST&lt;br&gt;（檢查 RRESP；SLVERR 中止剩餘推入）&lt;/font&gt;" vertex="1">
           <mxGeometry relative="1" x="-0.1416" y="5" as="geometry">
             <mxPoint x="-10" y="-18" as="offset" />
           </mxGeometry>
@@ -82,7 +82,7 @@
         <mxCell id="r" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#E8F8F0;strokeColor=#2E9E6C;fontColor=#1F7A54;fontSize=14;fontStyle=1;" value="&lt;font style=&quot;font-size: 16px;&quot;&gt;R&lt;br&gt;&lt;font color=&quot;#1F7A54&quot;&gt;推入 TX FIFO&lt;/font&gt;&lt;/font&gt;" vertex="1">
           <mxGeometry height="116" width="116" x="369" y="959" as="geometry" />
         </mxCell>
-        <mxCell id="re1" edge="1" parent="1" source="ridle" style="curved=1;endArrow=block;html=1;strokeColor=light-dark(#999999,#CCCCCC);fontSize=11;fontColor=#555555;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" target="ar" value="&lt;span style=&quot;color: light-dark(rgb(0, 0, 0), rgb(204, 204, 204));&quot;&gt;&lt;font style=&quot;font-size: 12px;&quot;&gt;① TX FIFO 低於門檻&lt;/font&gt;&lt;/span&gt;&lt;div&gt;&lt;span style=&quot;color: light-dark(rgb(0, 0, 0), rgb(204, 204, 204));&quot;&gt;&lt;font style=&quot;font-size: 12px;&quot;&gt;（assert ARVALID/ARADDR/ARLEN/ARBURST=INCR）&lt;/font&gt;&lt;/span&gt;&lt;/div&gt;">
+        <mxCell id="re1" edge="1" parent="1" source="ridle" style="curved=1;endArrow=block;html=1;strokeColor=light-dark(#999999,#CCCCCC);fontSize=11;fontColor=#555555;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" target="ar" value="&lt;font style=&quot;font-size: 12px; color: light-dark(rgb(0, 0, 0), rgb(102, 102, 102));&quot;&gt;① TX FIFO 低於門檻&lt;/font&gt;&lt;div&gt;&lt;font style=&quot;font-size: 12px; color: light-dark(rgb(0, 0, 0), rgb(102, 102, 102));&quot;&gt;（assert ARVALID/ARADDR/ARLEN/ARBURST=INCR）&lt;/font&gt;&lt;/div&gt;">
           <mxGeometry relative="1" x="-0.0937" y="-30" as="geometry">
             <mxPoint as="offset" />
             <Array as="points">
@@ -90,7 +90,7 @@
             </Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="re2" edge="1" parent="1" source="ar" style="curved=1;endArrow=block;html=1;strokeColor=light-dark(#999999,#CCCCCC);fontSize=11;fontColor=#555555;entryX=1;entryY=0.5;entryDx=0;entryDy=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;" target="r" value="&lt;span style=&quot;color: light-dark(rgb(0, 0, 0), rgb(204, 204, 204));&quot;&gt;&lt;font style=&quot;font-size: 12px;&quot;&gt;② ARVALID&amp;amp;ARREADY 握手&lt;/font&gt;&lt;/span&gt;">
+        <mxCell id="re2" edge="1" parent="1" source="ar" style="curved=1;endArrow=block;html=1;strokeColor=light-dark(#999999,#CCCCCC);fontSize=11;fontColor=#555555;entryX=1;entryY=0.5;entryDx=0;entryDy=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;" target="r" value="&lt;font style=&quot;font-size: 12px; color: light-dark(rgb(0, 0, 0), rgb(102, 102, 102));&quot;&gt;② ARVALID&amp;amp;ARREADY 握手&lt;/font&gt;">
           <mxGeometry relative="1" x="0.1053" y="-32" as="geometry">
             <mxPoint as="offset" />
             <Array as="points">
@@ -98,8 +98,8 @@
             </Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="re3" edge="1" parent="1" source="r" style="curved=1;endArrow=block;html=1;strokeColor=light-dark(#999999,#CCCCCC);fontSize=11;fontColor=#555555;exitX=0.5;exitY=0;exitDx=0;exitDy=0;edgeStyle=orthogonalEdgeStyle;innerLoopWaypoints=1;entryX=1;entryY=0;entryDx=0;entryDy=0;" target="r" value="&lt;font style=&quot;color: light-dark(rgb(0, 0, 0), rgb(204, 204, 204)); font-size: 12px;&quot;&gt;③ RVALID&amp;amp;RREADY&amp;amp;!RLAST&lt;/font&gt;">
-          <mxGeometry relative="1" x="-0.028" y="-8" as="geometry">
+        <mxCell id="re3" edge="1" parent="1" source="r" style="curved=1;endArrow=block;html=1;strokeColor=light-dark(#999999,#CCCCCC);fontSize=11;fontColor=#555555;exitX=0.5;exitY=0;exitDx=0;exitDy=0;edgeStyle=orthogonalEdgeStyle;innerLoopWaypoints=1;entryX=1;entryY=0;entryDx=0;entryDy=0;" target="r" value="&lt;font style=&quot;font-size: 12px; color: light-dark(rgb(164, 164, 164), rgb(102, 102, 102));&quot;&gt;③ RVALID&amp;amp;RREADY&amp;amp;!RLAST&lt;/font&gt;">
+          <mxGeometry relative="1" x="-0.0325" y="-8" as="geometry">
             <mxPoint as="offset" />
             <Array as="points">
               <mxPoint x="427" y="883.6" />
