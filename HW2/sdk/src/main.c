@@ -2,11 +2,15 @@
  * HW2 - S4 按鈕中斷切換 LED0 固定恆亮 / 2 秒呼吸燈
  * 平台：EGO-XZ7 (Zynq-7000), Xilinx SDK standalone BSP
  *
- * 硬體假設（Vivado block design 定案前的暫定值，之後依實際 xparameters.h / XDC 調整）：
+ * 硬體假設（已對過 2026-10-18 用 create_bd.tcl 實際跑出來的 bitstream + hsi 產生的
+ * xparameters.h，不是猜的）：
  *   - S4  = PS MIO_51，按下為 low（active-low，外部/內部上拉），接成 falling-edge 中斷
  *   - LED0 = PL pin T22，透過 PS7 的 EMIO 拉出一條 GPIO 給它；Zynq-7000 MIO 共 54 根
  *     (0~53)，XGpioPs 把 MIO/EMIO 當同一段連續編號，所以 EMIO 第 0 bit = pin 54
- *   - GPIO_INTR_ID / TTC_INTR_ID 用 xparameters.h 產生的值，這裡先放常見值註記待確認
+ *   - GPIO_INTR_ID = XPAR_XGPIOPS_0_INTR = XPS_GPIO_INT_ID = 52、
+ *     TTC_INTR_ID = XPAR_XTTCPS_0_INTR = XPS_TTC0_0_INT_ID = 42，
+ *     兩個巨集定義在 BSP 的 xparameters_ps.h（xparameters.h 會 #include 它），
+ *     不在 GPIOPS/TTCPS 驅動自己產生的 xparameters.h 區塊裡，找巨集時要注意這點。
  */
 
 #include "xparameters.h"
@@ -16,12 +20,12 @@
 #include "xil_exception.h"
 #include "xstatus.h"
 
-/* ---- 硬體腳位 / 裝置 ID（待 Vivado 硬體匯出後確認） ---- */
+/* ---- 硬體腳位 / 裝置 ID（2026-10-18 已對過實際產生的 xparameters.h） ---- */
 #define GPIO_DEVICE_ID      XPAR_XGPIOPS_0_DEVICE_ID
 #define GIC_DEVICE_ID       XPAR_SCUGIC_SINGLE_DEVICE_ID
 #define TTC_DEVICE_ID       XPAR_XTTCPS_0_DEVICE_ID
-#define GPIO_INTR_ID        XPAR_XGPIOPS_0_INTR      /* PS GPIO 共用中斷，固定為 SPI ID 52（UG585） */
-#define TTC_INTR_ID         XPAR_XTTCPS_0_INTR       /* TTC0 counter0 中斷，固定為 SPI ID 42（UG585） */
+#define GPIO_INTR_ID        XPAR_XGPIOPS_0_INTR      /* PS GPIO 共用中斷，SPI ID 52 */
+#define TTC_INTR_ID         XPAR_XTTCPS_0_INTR       /* TTC0 counter0 中斷，SPI ID 42 */
 
 #define S4_MIO_PIN          51u                       /* PS MIO_51 */
 #define LED0_PIN            54u                       /* EMIO[0]，接 LED0 (T22) */

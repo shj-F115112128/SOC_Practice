@@ -17,3 +17,6 @@ xvhdl.pb
 HW2/vivado/build/
 vivado.log
 vivado.jou
+hsi.log
+hsi.jou
+hsi_*.backup.log

@@ -29,14 +29,32 @@
 不是 SDK 主迴圈輪詢（polling）；中斷邏輯都在 SDK 端的 ISR 裡處理，Vivado 端只需要把
 硬體接好。
 
-## 文件手冊 — 待確認
+## 文件手冊
 
-白板上要找的「Zynq-7020 的手冊」是 Xilinx 原廠的晶片等級文件（例如 Zynq-7000 Technical
-Reference Manual / Register Reference，UG585 一類），裡面才會列出 PS 中斷控制器
-（GIC）、GPIO 等**有位址的暫存器**。目前本機只有 `D:\Hardware\EGO-XZ7 User guide V1.2.pdf`，
-這份是 **EGO-XZ7 板子的硬體手冊**（排針、原理圖、LED/按鈕/開關的 FPGA pin 對應表），
-不含 PS 暫存器位址 — 兩份是不同文件，步驟 1、2 要查的是 Xilinx 的晶片手冊，不是這份板子
-手冊。等拿到實際的 Xilinx UG/Programming Guide 檔案後，再補上實際章節連結與暫存器清單。
+白板上要找的「Zynq-7020 的手冊」是 Xilinx 原廠的晶片等級文件（Zynq-7000 Technical Reference
+Manual，**UG585**），裡面才會列出 PS 中斷控制器（GIC）、GPIO 等**有位址的暫存器**。
+`D:\Hardware\EGO-XZ7 User guide V1.2.pdf` 是 **EGO-XZ7 板子的硬體手冊**（排針、原理圖、
+LED/按鈕/開關的 FPGA pin 對應表），不含 PS 暫存器位址 — 兩份是不同文件，步驟 1、2 要查的是
+Xilinx 的晶片手冊，不是這份板子手冊。
+
+官方 UG585（線上）：https://docs.amd.com/r/en-US/ug585-zynq-7000-SoC-TRM
+PDF（UG585 v1.14, 2023-06-30, 1940 頁）：`D:\Hardware\UG585-Zynq-7000-TRM.pdf`
+
+`main.c` 裡用到的兩個中斷 ID 已經雙重核對過，兩個管道（Xilinx 工具鏈實際產生的檔案 +
+UG585 官方文件原文）給出的數字完全一致：
+
+1. **2026-10-18**：實際跑完 `vivado/create_bd.tcl` → generate bitstream → export hardware →
+   `hsi` 產生 standalone BSP，從真正產生出來的 `xparameters.h`／`xparameters_ps.h` 裡確認
+   `XPAR_XGPIOPS_0_INTR`=52、`XPAR_XTTCPS_0_INTR`=42。
+2. **同日**：在 UG585 PDF 裡用 pymupdf 全文搜尋找到原文（線上閱讀器是 canvas 動態渲染、翻了
+   半天還常常卡死，PDF 版直接全文搜尋快很多）：
+   - **GPIO=IRQ ID#52** — Chapter 14: General Purpose I/O (GPIO), p.414:「...combines all
+     interrupts for all GPIOs in all four banks to one output (**IRQ ID#52**) to the interrupt
+     controller.」
+   - **TTC0 counter/timer 0 = IRQ ID#42** — Chapter 8: Timers, p.254, **Figure 8-3「Triple
+     Counter Timer Block Diagram」**，圖上直接標示三個 counter 各自的 GIC IRQ ID：
+     Timer/Clock 0 → `TTC_0: IRQ ID # 42`，Timer/Clock 1 → `# 43`，Timer/Clock 2 → `# 44`
+     （TTC1 則是 69/70/71）。
 
 ## 板上可用的輸入/輸出（摘自 EGO-XZ7 User Guide V1.2, §2.9）
 
@@ -127,8 +145,28 @@ bank（Bank501）是 1.8V，但 Vivado 的 PS7 IP 對這顆 part（XC7Z020-CLG48
 `hw2.xdc` 把它綁到 T22、`IOSTANDARD LVCMOS33`（LED 那顆 bank 本身是 3.3V，沒有疑義）。
 S3/S4 走 MIO，是晶片內部固定接線，不需要（也不能）另外下 XDC。
 
-這次只驗證到 **block design 的連線/參數合法性**，還沒跑 synthesis/implementation/產生
-bitstream，也還沒匯出 `xparameters.h` 核對中斷 ID。
+**2026-10-18 更新：已經跑完整條流程到 bitstream + 軟體平台匯出。** 批次模式指令（不需要開
+GUI）：
+
+```
+cd vivado
+vivado -mode batch -source create_bd.tcl     # 建 block design，驗證通過
+# 在 Vivado Tcl console 或另一個 -source 腳本裡：
+#   launch_runs synth_1; wait_on_run synth_1
+#   launch_runs impl_1 -to_step write_bitstream; wait_on_run impl_1
+#   open_run impl_1
+#   write_hwdef -force build/hw2_led_isr.sdk/system.hwdef
+#   write_sysdef -force -hwdef build/hw2_led_isr.sdk/system.hwdef \
+#       -bitfile build/hw2_led_isr.runs/impl_1/system_wrapper.bit \
+#       build/hw2_led_isr.sdk/system.hdf
+
+# 再用 hsi（命令列，不用開 SDK GUI）從 system.hdf 產生 standalone BSP：
+hsi -source gen_bsp.tcl   # open_hw_design + create_sw_design + generate_bsp
+```
+
+產生的 `xparameters.h`（在 `bsp/ps7_cortexa9_0/include/`）證實 `main.c` 裡寫的裝置/中斷 ID
+巨集全部正確，細節見下方「待辦」。`build/` 整個資料夾已經 gitignore，不會進 repo；要重新產生
+就照上面流程重跑。
 
 ## 圖表
 
@@ -206,8 +244,15 @@ TTC0 tick=100us、防彈跳視窗=200ms、呼吸週期=200 tick×10ms=2000ms=T=2
       （[`vivado/create_bd.tcl`](vivado/create_bd.tcl)）
 - [x] Breakdown / FSM / AOV / MSC(timespec) 四張圖（見上方「圖表」）
 - [x] 方塊電路圖：Vivado BD 實際截圖（見上方第2節）
-- [ ] 取得 Xilinx Zynq-7020 的 UG / Programming Guide，核對本文件寫死的暫存器/中斷 ID
-      （GPIO=SPI 52、TTC0 counter0=SPI 42，來自 UG585，還沒拿到官方文件逐條核對）
-- [ ] Vivado：Generate Bitstream → Export Hardware（含 bitstream）
-- [ ] 匯出 `xparameters.h` 後回頭核對 `main.c` 裡的裝置 ID / 中斷 ID 巨集
+- [x] Vivado：Generate Bitstream（`system_wrapper.bit`，DRC 0 errors，批次模式跑出來的）
+- [x] Vivado：Export Hardware（`write_hwdef` + `write_sysdef`，含 bitstream，產生 `system.hdf`）
+- [x] 用 `hsi`（命令列工具，不用開 SDK GUI）從 `system.hdf` 產生 standalone BSP，拿到真正的
+      `xparameters.h` 核對 `main.c` 裡的裝置 ID / 中斷 ID 巨集：**全部對上**——
+      `XPAR_XGPIOPS_0_INTR` = `XPS_GPIO_INT_ID` = **52**、
+      `XPAR_XTTCPS_0_INTR` = `XPS_TTC0_0_INT_ID` = **42**，
+      跟 UG585（[官方連結](https://docs.amd.com/r/en-US/ug585-zynq-7000-SoC-TRM)）查到的 SPI ID
+      一致，不用再改 `main.c`。這兩個巨集定義在 BSP 的 `xparameters_ps.h`（被 `xparameters.h`
+      `#include`），不在 GPIOPS/TTCPS 驅動自己產生的那段——第一次核對時只翻了
+      `xparameters.h` 本體沒看到就以為巨集名稱錯了，後來才在 `xparameters_ps.h` 裡找到。
 - [ ] 實機測試：開機固定恆亮 → 按 S4 進入呼吸燈、確認週期約 2 秒 → 再按一下切回固定恆亮
+      （還需要實體 EGO-XZ7 板子 + 燒錄 bitstream + 跑這個 standalone app）

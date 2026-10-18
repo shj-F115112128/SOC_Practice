@@ -50,10 +50,11 @@ validate_bd_design
 save_bd_design
 
 make_wrapper -files [get_files system.bd] -top
-add_files -norecurse [glob [get_property DIRECTORY [current_project]]/$proj_name.gen/sources_1/bd/system/hdl/system_wrapper.v]
+add_files -norecurse [glob [get_property DIRECTORY [current_project]]/$proj_name.srcs/sources_1/bd/system/hdl/system_wrapper.v]
+update_compile_order -fileset sources_1
 set_property top system_wrapper [current_fileset]
 
-add_files -fileset constrs_1 -norecurse ../constraints/hw2.xdc
+add_files -fileset constrs_1 -norecurse constraints/hw2.xdc
 
 puts "Block design 建立完成，驗證通過（validate_bd_design 無錯誤）。"
 puts "接下來：Generate Bitstream -> Export Hardware (含 bitstream) -> 開 SDK，"
