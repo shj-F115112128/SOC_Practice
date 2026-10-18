@@ -1,6 +1,6 @@
 <mxfile host="Electron">
   <diagram id="ahbarb001" name="AHB Arbiter FSM">
-    <mxGraphModel dx="593" dy="284" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="820" pageHeight="520" math="0" shadow="0">
+    <mxGraphModel dx="1500" dy="718" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="820" pageHeight="520" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
@@ -36,12 +36,12 @@
         <mxCell id="e4" edge="1" parent="1" source="cpu" style="curved=1;endArrow=block;html=1;strokeColor=#999999;fontSize=11;fontColor=#555555;entryX=1;entryY=0;entryDx=0;entryDy=0;exitX=0;exitY=1;exitDx=0;exitDy=0;" target="dma" value="④ !HBUSREQ0&amp;HBUSREQ1&amp;HREADY&#xa;（CPU 自行釋放後才換手）">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="e5" edge="1" parent="1" source="cpu" style="curved=1;endArrow=block;html=1;strokeColor=#999999;fontSize=11;fontColor=#555555;exitX=0;exitY=1;exitDx=0;exitDy=0;entryX=1;entryY=1;entryDx=0;entryDy=0;" target="none" value="⑤ !HBUSREQ0&amp;!HBUSREQ1&amp;HREADY">
-          <mxGeometry relative="1" x="-0.0124" y="-10" as="geometry">
+        <mxCell id="e5" edge="1" parent="1" source="cpu" style="curved=1;endArrow=block;html=1;strokeColor=#999999;fontSize=11;fontColor=#555555;exitX=0;exitY=0;exitDx=0;exitDy=0;entryX=1;entryY=0;entryDx=0;entryDy=0;edgeStyle=orthogonalEdgeStyle;curveGeometry=1;" target="none" value="⑤ !HBUSREQ0&amp;!HBUSREQ1&amp;HREADY">
+          <mxGeometry relative="1" x="0.0147" y="3" as="geometry">
             <mxPoint as="offset" />
             <Array as="points">
-              <mxPoint x="612.51" y="269.84" />
-              <mxPoint x="426.54" y="319.67" />
+              <mxPoint x="737.1" y="62.9" />
+              <mxPoint x="226" y="62.9" />
             </Array>
           </mxGeometry>
         </mxCell>
