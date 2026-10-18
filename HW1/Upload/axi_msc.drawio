@@ -119,7 +119,7 @@
         <mxCell id="labelD" value="D&#10;CPU 讀取收到的資料" style="text;html=1;fontStyle=1;fontSize=13;align=left;" vertex="1" parent="1">
           <mxGeometry x="0" y="510" width="260" height="40" as="geometry" />
         </mxCell>
-        <mxCell id="d1" value="⑧ ARVALID：讀 buf_ptr（burst）" style="html=1;endArrow=block;strokeColor=#666666;fontSize=11;fontColor=#444444;labelBackgroundColor=#ffffff;" edge="1" parent="1">
+        <mxCell id="d1" value="⑧ ARVALID：讀回記憶體（burst，收到的資料）" style="html=1;endArrow=block;strokeColor=#666666;fontSize=11;fontColor=#444444;labelBackgroundColor=#ffffff;" edge="1" parent="1">
           <mxGeometry relative="1" as="geometry">
             <mxPoint x="120" y="545" as="sourcePoint" />
             <mxPoint x="780" y="545" as="targetPoint" />
