@@ -64,10 +64,10 @@
             <mxPoint x="900" y="230" as="targetPoint" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="labelB" value="B&#10;SIP-DMA 把 RX 資料寫入記憶體&#10;（write channel，AXI4-Lite，連續 4 次 transaction）" style="text;html=1;fontStyle=1;fontSize=13;align=left;" vertex="1" parent="1">
+        <mxCell id="labelB" value="B&#10;SIP-DMA 把 RX 資料寫入記憶體&#10;（write channel，真正的 AXI4 INCR burst）" style="text;html=1;fontStyle=1;fontSize=13;align=left;" vertex="1" parent="1">
           <mxGeometry x="0" y="235" width="280" height="55" as="geometry" />
         </mxCell>
-        <mxCell id="b1" value="③ AWVALID+WDATA（4 次獨立 transaction）→ 收 buff" style="html=1;endArrow=block;strokeColor=#666666;fontSize=11;fontColor=#444444;labelBackgroundColor=#ffffff;" edge="1" parent="1">
+        <mxCell id="b1" value="③ AWVALID+AWLEN+AWBURST=INCR，WDATA…WLAST（一次 burst）→ 收 buff" style="html=1;endArrow=block;strokeColor=#666666;fontSize=11;fontColor=#444444;labelBackgroundColor=#ffffff;" edge="1" parent="1">
           <mxGeometry relative="1" as="geometry">
             <mxPoint x="470" y="275" as="sourcePoint" />
             <mxPoint x="780" y="275" as="targetPoint" />
