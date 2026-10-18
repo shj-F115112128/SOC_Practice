@@ -1,10 +1,10 @@
 <mxfile host="Electron">
   <diagram name="HW2_MSC_timespec" id="hw2msc001">
-    <mxGraphModel dx="1733" dy="1028" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="1000" math="0" shadow="0">
+    <mxGraphModel dx="1245" dy="596" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="1000" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
-        <mxCell id="t_main" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#999999;fontSize=14;fontStyle=1;" value="main()&#xa;&lt;font style=&quot;font-size:11px&quot;&gt;初始化+while(1)&lt;/font&gt;" vertex="1">
+        <mxCell id="t_main" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#999999;fontSize=14;fontStyle=1;" value="&lt;font&gt;main()&lt;br&gt;&lt;font style=&quot;&quot;&gt;初始化+while(1)&lt;/font&gt;&lt;/font&gt;" vertex="1">
           <mxGeometry height="60" width="200" y="20" as="geometry" />
         </mxCell>
         <mxCell id="l_main" edge="1" parent="1" style="html=1;endArrow=none;dashed=1;strokeColor=#bbbbbb;">
@@ -13,7 +13,7 @@
             <mxPoint x="100" y="920" as="targetPoint" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="t_s4" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#999999;fontSize=14;fontStyle=1;" value="S4 按鍵&#xa;&lt;font style=&quot;font-size:11px&quot;&gt;User Input&lt;/font&gt;" vertex="1">
+        <mxCell id="t_s4" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#999999;fontSize=14;fontStyle=1;" value="&lt;font&gt;S4 按鍵&lt;br&gt;&lt;font style=&quot;&quot;&gt;User Input&lt;/font&gt;&lt;/font&gt;" vertex="1">
           <mxGeometry height="60" width="200" x="280" y="20" as="geometry" />
         </mxCell>
         <mxCell id="l_s4" edge="1" parent="1" style="html=1;endArrow=none;dashed=1;strokeColor=#bbbbbb;">
@@ -22,7 +22,7 @@
             <mxPoint x="380" y="920" as="targetPoint" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="t_isr4" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E8F8F0;strokeColor=#2E9E6C;fontSize=14;fontStyle=1;fontColor=#1F7A54;" value="S4IntrHandler&#xa;&lt;font style=&quot;font-size:11px&quot;&gt;GPIO 中斷服務&lt;/font&gt;" vertex="1">
+        <mxCell id="t_isr4" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E8F8F0;strokeColor=#2E9E6C;fontSize=14;fontStyle=1;fontColor=#1F7A54;" value="&lt;font&gt;S4IntrHandler&lt;br&gt;&lt;font style=&quot;&quot;&gt;GPIO 中斷服務&lt;/font&gt;&lt;/font&gt;" vertex="1">
           <mxGeometry height="60" width="200" x="560" y="20" as="geometry" />
         </mxCell>
         <mxCell id="l_isr4" edge="1" parent="1" style="html=1;endArrow=none;dashed=1;strokeColor=#bbbbbb;">
@@ -31,7 +31,7 @@
             <mxPoint x="660" y="920" as="targetPoint" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="t_isrt" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF6E0;strokeColor=#C79A2E;fontSize=14;fontStyle=1;fontColor=#8A6D1E;" value="TtcIntrHandler&#xa;&lt;font style=&quot;font-size:11px&quot;&gt;TTC0 計時器中斷服務&lt;/font&gt;" vertex="1">
+        <mxCell id="t_isrt" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF6E0;strokeColor=#C79A2E;fontSize=14;fontStyle=1;fontColor=#8A6D1E;" value="&lt;font&gt;TtcIntrHandler&lt;br&gt;&lt;font style=&quot;&quot;&gt;TTC0 計時器中斷服務&lt;/font&gt;&lt;/font&gt;" vertex="1">
           <mxGeometry height="60" width="200" x="840" y="20" as="geometry" />
         </mxCell>
         <mxCell id="l_isrt" edge="1" parent="1" style="html=1;endArrow=none;dashed=1;strokeColor=#bbbbbb;">
@@ -40,7 +40,7 @@
             <mxPoint x="940" y="920" as="targetPoint" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="t_led0" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#999999;fontSize=14;fontStyle=1;" value="LED0&#xa;&lt;font style=&quot;font-size:11px&quot;&gt;PL GPIO 輸出&lt;/font&gt;" vertex="1">
+        <mxCell id="t_led0" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#999999;fontSize=14;fontStyle=1;" value="&lt;font&gt;LED0&lt;br&gt;&lt;font style=&quot;&quot;&gt;PL GPIO 輸出&lt;/font&gt;&lt;/font&gt;" vertex="1">
           <mxGeometry height="60" width="200" x="1120" y="20" as="geometry" />
         </mxCell>
         <mxCell id="l_led0" edge="1" parent="1" style="html=1;endArrow=none;dashed=1;strokeColor=#bbbbbb;">
@@ -55,22 +55,22 @@
             <mxPoint x="1360" y="130" as="targetPoint" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="labelA" parent="1" style="text;html=1;fontStyle=1;fontSize=13;align=left;" value="A 開機初始化 (t=0)" vertex="1">
+        <mxCell id="labelA" parent="1" style="text;html=1;fontStyle=1;fontSize=13;align=left;" value="&lt;font style=&quot;font-size: 16px;&quot;&gt;A 開機初始化 (t=0)&lt;/font&gt;" vertex="1">
           <mxGeometry height="40" width="320" y="135" as="geometry" />
         </mxCell>
-        <mxCell id="a1" edge="1" parent="1" style="html=1;endArrow=block;strokeColor=#666666;fontSize=11;fontColor=#444444;labelBackgroundColor=#ffffff;" value="① XGpioPs_WritePin(LED0,1)　t=0　LED0恆亮">
+        <mxCell id="a1" edge="1" parent="1" style="html=1;endArrow=block;strokeColor=#666666;fontSize=11;fontColor=#444444;labelBackgroundColor=#ffffff;" value="&lt;font style=&quot;font-size: 14px;&quot;&gt;① XGpioPs_WritePin(LED0,1)　t=0　LED0恆亮&lt;/font&gt;">
           <mxGeometry relative="1" as="geometry">
             <mxPoint x="100" y="165" as="sourcePoint" />
             <mxPoint x="1220" y="165" as="targetPoint" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="a2" edge="1" parent="1" style="html=1;endArrow=block;strokeColor=#666666;fontSize=11;fontColor=#444444;labelBackgroundColor=#ffffff;" value="② XTtcPs_Start()　t=0　啟動 10kHz tick (100us/次)">
+        <mxCell id="a2" edge="1" parent="1" style="html=1;endArrow=block;strokeColor=#666666;fontSize=11;fontColor=#444444;labelBackgroundColor=#ffffff;" value="&lt;font style=&quot;font-size: 14px;&quot;&gt;② XTtcPs_Start()　t=0　啟動 10kHz tick (100us/次)&lt;/font&gt;">
           <mxGeometry relative="1" as="geometry">
             <mxPoint x="100" y="195" as="sourcePoint" />
             <mxPoint x="940" y="195" as="targetPoint" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="noteA" parent="1" style="whiteSpace=wrap;html=1;align=left;verticalAlign=top;fontSize=12;fontColor=#666666;" value="main() 之後進入 while(1){} 空迴圈，不再主動做事，後續行為全部由 S4 的 GPIO 中斷與 TTC0 的週期中斷驅動。" vertex="1">
+        <mxCell id="noteA" parent="1" style="whiteSpace=wrap;html=1;align=left;verticalAlign=top;fontSize=12;fontColor=#666666;" value="&lt;font style=&quot;font-size: 15px;&quot;&gt;main() 之後進入 while(1){} 空迴圈，不再主動做事，後續行為全部由 S4 的 GPIO 中斷與 TTC0 的週期中斷驅動。&lt;/font&gt;" vertex="1">
           <mxGeometry height="30" width="1320" x="40" y="215" as="geometry" />
         </mxCell>
         <mxCell id="divB" edge="1" parent="1" style="html=1;endArrow=none;strokeColor=#dddddd;">
@@ -79,23 +79,24 @@
             <mxPoint x="1360" y="300" as="targetPoint" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="labelB" parent="1" style="text;html=1;fontStyle=1;fontSize=13;align=left;" value="B 第一次按下 S4，切到 BREATH (t=t1)" vertex="1">
+        <mxCell id="labelB" parent="1" style="text;html=1;fontStyle=1;fontSize=13;align=left;" value="&lt;font style=&quot;font-size: 15px;&quot;&gt;B 第一次按下 S4，切到 BREATH (t=t1)&lt;/font&gt;" vertex="1">
           <mxGeometry height="40" width="320" y="305" as="geometry" />
         </mxCell>
-        <mxCell id="b1" edge="1" parent="1" style="html=1;endArrow=block;strokeColor=#666666;fontSize=11;fontColor=#444444;labelBackgroundColor=#ffffff;" value="③ falling-edge　t=t1（使用者按下）">
+        <mxCell id="b1" edge="1" parent="1" style="html=1;endArrow=block;strokeColor=#666666;fontSize=11;fontColor=#444444;labelBackgroundColor=#ffffff;" value="&lt;font style=&quot;font-size: 14px;&quot;&gt;③ falling-edge　t=t1（使用者按下）&lt;/font&gt;">
           <mxGeometry relative="1" as="geometry">
             <mxPoint x="380" y="335" as="sourcePoint" />
             <mxPoint x="660" y="335" as="targetPoint" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="b2" edge="1" parent="1" style="html=1;endArrow=block;strokeColor=#666666;fontSize=11;fontColor=#444444;labelBackgroundColor=#ffffff;rounded=0;curved=0;" value="④ 防彈跳判斷 Δt≥200ms→通過 toggle g_Mode: FIXED→BREATH IntrClearPin()">
-          <mxGeometry relative="1" as="geometry">
+        <mxCell id="b2" edge="1" parent="1" style="html=1;endArrow=block;strokeColor=#666666;fontSize=11;fontColor=#444444;labelBackgroundColor=#ffffff;rounded=0;curved=0;" value="&lt;font style=&quot;font-size: 14px;&quot;&gt;④ 防彈跳判斷 Δt≥200ms→通過 toggle g_Mode: FIXED→BREATH IntrClearPin()&lt;/font&gt;">
+          <mxGeometry relative="1" x="-0.0435" as="geometry">
+            <mxPoint as="offset" />
             <Array as="points">
               <mxPoint x="750" y="360" />
-              <mxPoint x="750" y="400" />
+              <mxPoint x="750" y="410" />
             </Array>
             <mxPoint x="660" y="360" as="sourcePoint" />
-            <mxPoint x="660" y="400" as="targetPoint" />
+            <mxPoint x="660" y="410" as="targetPoint" />
           </mxGeometry>
         </mxCell>
         <mxCell id="divC" edge="1" parent="1" style="html=1;endArrow=none;strokeColor=#dddddd;">
@@ -104,16 +105,16 @@
             <mxPoint x="1360" y="470" as="targetPoint" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="labelC" parent="1" style="text;html=1;fontStyle=1;fontSize=13;align=left;" value="C 穩態呼吸迴圈 (t1 之後持續)" vertex="1">
+        <mxCell id="labelC" parent="1" style="text;html=1;fontStyle=1;fontSize=13;align=left;" value="&lt;font style=&quot;font-size: 16px;&quot;&gt;C 穩態呼吸迴圈 (t1 之後持續)&lt;/font&gt;" vertex="1">
           <mxGeometry height="40" width="320" y="475" as="geometry" />
         </mxCell>
-        <mxCell id="c1" edge="1" parent="1" style="html=1;endArrow=block;strokeColor=#666666;fontSize=11;fontColor=#444444;labelBackgroundColor=#ffffff;" value="⑤ 每 100us 一次：WritePin(LED0, cmp)　tick #1~#200">
+        <mxCell id="c1" edge="1" parent="1" style="html=1;endArrow=block;strokeColor=#666666;fontSize=11;fontColor=#444444;labelBackgroundColor=#ffffff;" value="&lt;font style=&quot;font-size: 14px;&quot;&gt;⑤ 每 100us 一次：WritePin&lt;/font&gt;&lt;div&gt;&lt;font style=&quot;font-size: 14px;&quot;&gt;(LED0, cmp)　&lt;/font&gt;&lt;span style=&quot;font-size: 14px; background-color: light-dark(rgb(255, 255, 255), rgb(18, 18, 18)); color: light-dark(rgb(68, 68, 68), rgb(179, 179, 179));&quot;&gt;tick #1~#200&lt;/span&gt;&lt;/div&gt;">
           <mxGeometry relative="1" as="geometry">
             <mxPoint x="940" y="510" as="sourcePoint" />
             <mxPoint x="1220" y="510" as="targetPoint" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="noteC" parent="1" style="whiteSpace=wrap;html=1;align=left;verticalAlign=top;fontSize=12;fontColor=#666666;" value="⑤ 是 200 次訊息的代表性畫法，不是只送一次：TTC0 每 100us 觸發一次，依 pwm_counter(0~99)與目前 brightness 比較輸出 LED0；每 100 個 tick(=10ms)算完一輪 PWM、breath_step 前進一步(0→99 漸亮、99→0 漸暗)，200 步 × 10ms = 2000ms，剛好等於題目要求的呼吸週期 T=2s，之後持續循環直到下一次 S4 切模式。" vertex="1">
+        <mxCell id="noteC" parent="1" style="whiteSpace=wrap;html=1;align=left;verticalAlign=top;fontSize=12;fontColor=#666666;" value="&lt;font style=&quot;font-size: 14px;&quot;&gt;⑤ 是 200 次訊息的代表性畫法，不是只送一次：TTC0 每 100us 觸發一次，依 pwm_counter(0~99)與目前 brightness 比較輸出 LED0；每 100 個 tick(=10ms)算完一輪 PWM、breath_step 前進一步(0→99 漸亮、99→0 漸暗)，200 步 × 10ms = 2000ms，剛好等於題目要求的呼吸週期 T=2s，之後持續循環直到下一次 S4 切模式。&lt;/font&gt;" vertex="1">
           <mxGeometry height="55" width="1320" x="40" y="535" as="geometry" />
         </mxCell>
         <mxCell id="divD" edge="1" parent="1" style="html=1;endArrow=none;strokeColor=#dddddd;">
@@ -122,32 +123,32 @@
             <mxPoint x="1360" y="630" as="targetPoint" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="labelD" parent="1" style="text;html=1;fontStyle=1;fontSize=13;align=left;" value="D 第二次按下 S4，切回 FIXED (t=t2)" vertex="1">
+        <mxCell id="labelD" parent="1" style="text;html=1;fontStyle=1;fontSize=13;align=left;" value="&lt;font style=&quot;font-size: 16px;&quot;&gt;D 第二次按下 S4，切回 FIXED (t=t2)&lt;/font&gt;" vertex="1">
           <mxGeometry height="40" width="320" y="635" as="geometry" />
         </mxCell>
-        <mxCell id="d1" edge="1" parent="1" style="html=1;endArrow=block;strokeColor=#666666;fontSize=11;fontColor=#444444;labelBackgroundColor=#ffffff;" value="⑥ falling-edge　t=t2（使用者再按一次）">
+        <mxCell id="d1" edge="1" parent="1" style="html=1;endArrow=block;strokeColor=#666666;fontSize=11;fontColor=#444444;labelBackgroundColor=#ffffff;" value="&lt;font style=&quot;font-size: 14px;&quot;&gt;⑥ falling-edge　t=t2（使用者再按一次）&lt;/font&gt;">
           <mxGeometry relative="1" as="geometry">
             <mxPoint x="380" y="665" as="sourcePoint" />
             <mxPoint x="660" y="665" as="targetPoint" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="d2" edge="1" parent="1" style="html=1;endArrow=block;strokeColor=#666666;fontSize=11;fontColor=#444444;labelBackgroundColor=#ffffff;rounded=0;curved=0;" value="⑦ 防彈跳判斷 Δt≥200ms→通過 toggle g_Mode: BREATH→FIXED IntrClearPin()">
-          <mxGeometry relative="1" as="geometry">
+        <mxCell id="d2" edge="1" parent="1" style="html=1;endArrow=block;strokeColor=#666666;fontSize=11;fontColor=#444444;labelBackgroundColor=#ffffff;rounded=0;curved=0;" value="&lt;font style=&quot;font-size: 14px;&quot;&gt;⑦ 防彈跳判斷 Δt≥200ms→通過 toggle g_Mode: BREATH→FIXED IntrClearPin()&lt;/font&gt;">
+          <mxGeometry relative="1" x="-0.0435" as="geometry">
             <Array as="points">
               <mxPoint x="750" y="690" />
-              <mxPoint x="750" y="730" />
+              <mxPoint x="750" y="740" />
             </Array>
             <mxPoint x="660" y="690" as="sourcePoint" />
-            <mxPoint x="660" y="730" as="targetPoint" />
+            <mxPoint x="660" y="740" as="targetPoint" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="d3" edge="1" parent="1" style="html=1;endArrow=block;strokeColor=#666666;fontSize=11;fontColor=#444444;labelBackgroundColor=#ffffff;" value="⑧ 下一個 tick 起：WritePin(LED0,1)　t≈t2+≤100us　LED0恆亮">
+        <mxCell id="d3" edge="1" parent="1" style="html=1;endArrow=block;strokeColor=#666666;fontSize=11;fontColor=#444444;labelBackgroundColor=#ffffff;" value="&lt;font style=&quot;font-size: 14px;&quot;&gt;⑧ 下一個 tick 起：WritePin(LED0,1)　&lt;/font&gt;&lt;div&gt;&lt;font style=&quot;font-size: 14px;&quot;&gt;t≈t2+≤100us　LED0恆亮&lt;/font&gt;&lt;/div&gt;">
           <mxGeometry relative="1" as="geometry">
             <mxPoint x="940" y="770" as="sourcePoint" />
             <mxPoint x="1220" y="770" as="targetPoint" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="noteFoot" parent="1" style="whiteSpace=wrap;html=1;align=left;verticalAlign=top;fontSize=12;fontColor=#666666;" value="時間基準：TTC0 tick = 100us（10kHz）；防彈跳視窗 = 200ms；呼吸週期 = 200 tick × 10ms/PWM週期 = 2000ms = T=2s（對應待辦清單中仍待硬體核對的 GPIO=SPI52／TTC0=SPI42 若實際不同，週期本身不受影響）。S4→S4IntrHandler 的中斷延遲（falling-edge 到 ISR 開始執行）為 ARM GIC 典型量級示意，不是實測值，待 Vivado bitstream/SDK 實機跑出來後用 SCUTIMER 或邏輯分析儀量測取代。" vertex="1">
+        <mxCell id="noteFoot" parent="1" style="whiteSpace=wrap;html=1;align=left;verticalAlign=top;fontSize=12;fontColor=#666666;" value="&lt;font style=&quot;font-size: 14px;&quot;&gt;時間基準：TTC0 tick = 100us（10kHz）；防彈跳視窗 = 200ms；呼吸週期 = 200 tick × 10ms/PWM週期 = 2000ms = T=2s（對應待辦清單中仍待硬體核對的 GPIO=SPI52／TTC0=SPI42 若實際不同，週期本身不受影響）。S4→S4IntrHandler 的中斷延遲（falling-edge 到 ISR 開始執行）為 ARM GIC 典型量級示意，不是實測值，待 Vivado bitstream/SDK 實機跑出來後用 SCUTIMER 或邏輯分析儀量測取代。&lt;/font&gt;" vertex="1">
           <mxGeometry height="70" width="1320" x="40" y="820" as="geometry" />
         </mxCell>
       </root>
