@@ -1,18 +1,18 @@
-# HW2 block design: PS7 only，S4 (PS MIO_51) 中斷按鈕 + LED0 (EMIO -> PL T22)
+# HW2 block design：S6 (BTNC, PL P16) 中斷按鈕 + PL 呼吸燈 PWM (rtl/pwm_breath.v) -> LED0 (T22)
 #
-# 已經在 Vivado 2018.2 batch mode 實際跑過 validate_bd_design 驗證過，可以直接：
-#   vivado -mode batch -source create_bd.tcl
-# 或是把中段 PS7 設定那幾行貼進既有專案的 Tcl console。
+# 用法（在 vivado/ 目錄下）：
+#   vivado -mode batch -source create_bd.tcl [-tclargs <專案目錄>]
+#   專案目錄預設 ./build；create_project -force 會清空該目錄，不要指到 SDK workspace 所在的資料夾
 #
 # 設計重點：
-#   - 完全不需要 PL 端邏輯 / AXI GP0 master：S4 中斷走 PS 內建 GPIO controller + GIC，
-#     LED0 的 PWM/呼吸燈邏輯都在 SDK 軟體裡跑（TTC0 計時器中斷），PL 只負責把 EMIO
-#     那一條 GPIO 接到實體腳位，所以關掉 M_AXI_GP0 後整個 BD 不需要任何 PL 時脈接線。
-#   - LED0 透過 EMIO 的 "Make External" 自動產生 IOBUF（Vivado 的 BD wrapper 生成階段
-#     自己加的，不用手動寫 IOBUF 原語），對外埠名稱是 led0_gpio_tri_io[0]。
+#   - 按鈕經過 PL：S6 -> rtl/btn_debounce.v（同步 + 20ms 防彈跳）-> AXI GPIO (axi_gpio_btn,
+#     開 interrupt) -> ip2intc_irpt -> PS7 IRQ_F2P[0] -> GIC（IRQ ID 61），ISR 在 SDK 端。
+#   - 呼吸燈 PWM 在 PL 用 Verilog 做（rtl/pwm_breath.v，FCLK_CLK0 = 50 MHz），
+#     CPU 只透過 M_AXI_GP0 -> AXI Interconnect -> AXI GPIO 寫 1 bit 的 mode
+#     （0 = 恆亮、1 = 2 秒呼吸），PWM 波形全部由硬體產生，CPU 不用一直進中斷。
 
 set proj_name  "hw2_led_isr"
-set proj_dir   "./build"
+set proj_dir   [expr {$argc > 0 ? [lindex $argv 0] : "./build"}]
 set part       "xc7z020clg484-1"
 
 create_project $proj_name $proj_dir -part $part -force
@@ -20,34 +20,84 @@ create_project $proj_name $proj_dir -part $part -force
 create_bd_design "system"
 create_bd_cell -type ip -vlnv xilinx.com:ip:processing_system7:5.5 ps7
 
-# 不用 PL AXI master（S4/LED0 都不經過 PL 的 AXI 介面）
-set_property CONFIG.PCW_USE_M_AXI_GP0 {0} [get_bd_cells ps7]
+# PL 端的 Verilog 模組，要先加進專案才能在 BD 裡用 module reference 放進去
+# （要在 create_bd_design 之後才加：2018.2 在建 BD 之前先 add_files/update_compile_order，
+#   create_bd_design 會報 couldn't read file "addr.tcl"）
+add_files -norecurse [list rtl/pwm_breath.v rtl/btn_debounce.v]
+add_files -fileset sim_1 -norecurse [list rtl/tb_pwm_breath.v rtl/tb_btn_debounce.v]
+set_property top tb_pwm_breath [get_filesets sim_1]
+update_compile_order -fileset sources_1
 
-# S4 (MIO_51) 走 PS 內建 GPIO；LED0 多拉一條 EMIO GPIO 給 PL 用
-set_property CONFIG.PCW_GPIO_MIO_GPIO_ENABLE  {1} [get_bd_cells ps7]
-set_property CONFIG.PCW_GPIO_EMIO_GPIO_ENABLE {1} [get_bd_cells ps7]
-set_property CONFIG.PCW_GPIO_EMIO_GPIO_WIDTH  {1} [get_bd_cells ps7]
+# M_AXI_GP0 + FCLK_CLK0 給 PL 的 AXI GPIO / pwm_breath 用
+set_property CONFIG.PCW_USE_M_AXI_GP0 {1} [get_bd_cells ps7]
+set_property CONFIG.PCW_FPGA0_PERIPHERAL_FREQMHZ {50} [get_bd_cells ps7]
 
-# S3/S4 兩顆 PS push button 都接 MIO_50/51，開內部 pull-up（板上另外也有 4.7K 外部上拉）
-set_property CONFIG.PCW_MIO_50_PULLUP {enabled} [get_bd_cells ps7]
-set_property CONFIG.PCW_MIO_51_PULLUP {enabled} [get_bd_cells ps7]
-# 注意：MIO_50/51 的 IOTYPE 這顆 part/package 只接受 LVCMOS 3.3V（Vivado IP 本身的
-# hard constraint），跟 EGO-XZ7 UG 文字 OCR 出來的「Bank501 (1.8V)」對不上 ——
-# 以 Vivado 這邊為準，不要手動覆寫成 1.8V（會直接報錯 out of range）。
+# PL -> PS 中斷輸入 IRQ_F2P（UG585 Table 7-4：IRQ_F2P[0] = IRQ ID 61）
+set_property CONFIG.PCW_USE_FABRIC_INTERRUPT {1} [get_bd_cells ps7]
+set_property CONFIG.PCW_IRQ_F2P_INTR        {1} [get_bd_cells ps7]
 
-# TTC0（軟體 PWM 的計時器中斷來源），預設關閉要手動開
-set_property CONFIG.PCW_TTC0_PERIPHERAL_ENABLE {1} [get_bd_cells ps7]
+# DDR3：EGO-XZ7 板上是 2 顆 GT8UB256M16BP-BG（256M x16，4Gb，Row 15），選 Micron 等效料號。
+# 沒設的話 Vivado 預設 MT41J128M8（x8、1Gb、Row 14），DDR 參數錯 → 上板 CPU 開 cache 後
+# 一開機就掛在 boot.S，main() 跑不到
+set_property CONFIG.PCW_UIPARAM_DDR_PARTNO {MT41J256M16 RE-125} [get_bd_cells ps7]
 
 # DDR / FIXED_IO / PS_CLK 拉到外部（每個 Zynq 設計都要）
 apply_bd_automation -rule xilinx.com:bd_rule:processing_system7 \
     -config {make_external "FIXED_IO, DDR, PS_CLK" apply_board_preset "0" \
               Master "Disable" Slave "Disable"} [get_bd_cells ps7]
 
-# LED0 的 EMIO GPIO 拉到外部，Vivado 會在產生 wrapper 時自動加 IOBUF
-make_bd_intf_pins_external -name led0_gpio [get_bd_intf_pins ps7/GPIO_0]
+# AXI GPIO：1 bit 輸出 = 呼吸燈 mode
+create_bd_cell -type ip -vlnv xilinx.com:ip:axi_gpio:2.0 axi_gpio_mode
+set_property -dict [list CONFIG.C_GPIO_WIDTH {1} CONFIG.C_ALL_OUTPUTS {1}] \
+    [get_bd_cells axi_gpio_mode]
 
+# 自動接 AXI：會產生 AXI Interconnect + Processor System Reset，時脈用 FCLK_CLK0
+# （rst_ps7_50M 不能拿掉：AXI 規格 IHI0022L A2.1.2 要求 ARESETn 同步於 ACLK 放開，
+#   FCLK_RESET0_N 直接接的話 validate_bd_design 會報 8 個 CRITICAL WARNING [BD 41-1348]）
+apply_bd_automation -rule xilinx.com:bd_rule:axi4 \
+    -config {Master "/ps7/M_AXI_GP0" Clk "Auto"} \
+    [get_bd_intf_pins axi_gpio_mode/S_AXI]
+
+# AXI GPIO：1 bit 輸入 = 防彈跳後的 S6，開 interrupt（輸入變化 -> ip2intc_irpt）
+create_bd_cell -type ip -vlnv xilinx.com:ip:axi_gpio:2.0 axi_gpio_btn
+set_property -dict [list CONFIG.C_GPIO_WIDTH {1} CONFIG.C_ALL_INPUTS {1} \
+                         CONFIG.C_INTERRUPT_PRESENT {1}] \
+    [get_bd_cells axi_gpio_btn]
+
+apply_bd_automation -rule xilinx.com:bd_rule:axi4 \
+    -config {Master "/ps7/M_AXI_GP0" Clk "Auto"} \
+    [get_bd_intf_pins axi_gpio_btn/S_AXI]
+
+connect_bd_net [get_bd_pins axi_gpio_btn/ip2intc_irpt] [get_bd_pins ps7/IRQ_F2P]
+
+# PL 按鈕同步 + 防彈跳（Verilog module reference）
+create_bd_cell -type module -reference btn_debounce btn_debounce_0
+connect_bd_net [get_bd_pins ps7/FCLK_CLK0] [get_bd_pins btn_debounce_0/clk]
+connect_bd_net [get_bd_pins [get_bd_cells -filter {VLNV =~ "*proc_sys_reset*"}]/peripheral_aresetn] \
+               [get_bd_pins btn_debounce_0/resetn]
+connect_bd_net [get_bd_pins btn_debounce_0/btn_out] [get_bd_pins axi_gpio_btn/gpio_io_i]
+
+create_bd_port -dir I btn
+connect_bd_net [get_bd_ports btn] [get_bd_pins btn_debounce_0/btn_in]
+
+# PL 呼吸燈 PWM（Verilog module reference）
+create_bd_cell -type module -reference pwm_breath pwm_breath_0
+connect_bd_net [get_bd_pins ps7/FCLK_CLK0] [get_bd_pins pwm_breath_0/clk]
+connect_bd_net [get_bd_pins [get_bd_cells -filter {VLNV =~ "*proc_sys_reset*"}]/peripheral_aresetn] \
+               [get_bd_pins pwm_breath_0/resetn]
+connect_bd_net [get_bd_pins axi_gpio_mode/gpio_io_o] [get_bd_pins pwm_breath_0/mode]
+
+create_bd_port -dir O led0
+connect_bd_net [get_bd_pins pwm_breath_0/led] [get_bd_ports led0]
+
+regenerate_bd_layout
 validate_bd_design
 save_bd_design
+
+# BD 裡有 module reference（pwm_breath、btn_debounce）時，2018.2 batch 模式不會自動幫各 IP 建 OOC 合成 run，
+# synth_1 會報 module 'system_axi_gpio_mode_0' not found；改成 global 合成並明確產生輸出檔
+set_property synth_checkpoint_mode None [get_files system.bd]
+generate_target all [get_files system.bd]
 
 make_wrapper -files [get_files system.bd] -top
 add_files -norecurse [glob [get_property DIRECTORY [current_project]]/$proj_name.srcs/sources_1/bd/system/hdl/system_wrapper.v]

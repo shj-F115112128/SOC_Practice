@@ -1,258 +1,275 @@
 # HW2 — Zynq-7020 中斷與 LED/Push Button 驅動
 
-平台：EGO-XZ7（Zynq-7000, XC7Z020），開發環境 Vivado + Xilinx SDK。
+平台：EGO-XZ7（Zynq-7000, XC7Z020），開發環境 Vivado 2018.2 + Xilinx SDK 2018.2。
 
-## 作業要求
+## 題目
 
-1. 找 SoC（Zynq-7020）的手冊：**User Guide (UG xx)** + **Programming Guide**，從中找出跟
-   BSP（Board Support Package）、ISR() 相關的章節。
-2. 在 UG 裡找出**中斷相關的 port（有位址的暫存器）**。
-3. 寫程式：
-   1. 先隨便點亮一個 LED：C（SDK）→ 燒進 FPGA（Vivado）→ LED 亮。
-   2. 按 push button 之後，LED 要有客製化反應：用第 2 步找到的暫存器資訊，寫 **Driver +
-      特別的 ISR**（中斷服務常式）。
+1. 從 Zynq-7020 的手冊找出跟 BSP（Board Support Package）、ISR 相關的章節。
+2. 找出中斷控制器相關的暫存器：**1. IRQ #（port）**、**2. pending register（port status）**、
+   **3. mask register（port enable）**。
+3. 按下 push button 產生中斷，按鈕訊號**經過 FPGA（PL）**再進中斷控制器；用找到的暫存器寫
+   Driver + ISR，讓 LED 有客製化反應。
 
-> 原始白板照片：[`whiteboard-2026-10-17.jpg`](whiteboard-2026-10-17.jpg)（HW2 這週作業內容，
-> 含右側 IRQ 向量表草圖，標記這次用的中斷編號 #4）。
+## 功能規格
 
-## 功能規格（已決定）
-
-- 輸入：**S4**（PS MIO_51 push button）
-- 輸出：**LED0**（PL fabric pin T22）
+- 輸入：**S6（BTNC）**，PL pin **P16**，按下 = 1
+- 輸出：**LED0**，PL pin **T22**
 - 行為：
   1. 開機預設 LED0 **固定恆亮**。
-  2. 按一下 S4 → 切換成**呼吸燈**，週期 T = 2 秒（亮度持續漸增漸減循環）。
-  3. 再按一下 S4 → 切回**固定恆亮**。
-  4. 之後每按一次 S4 就在這兩個狀態之間切換（edge-triggered toggle）。
+  2. 按一下 S6 → 切換成**呼吸燈**，週期 T = 2 秒（1 秒漸亮 + 1 秒漸暗）。
+  3. 再按一下 S6 → 切回**固定恆亮**，之後每按一次就在兩個狀態間切換。
 
-老師指定要用中斷控制，所以按鍵偵測走 **S4 的 GPIO 中斷**（PS GPIO interrupt via GIC），
-不是 SDK 主迴圈輪詢（polling）；中斷邏輯都在 SDK 端的 ISR 裡處理，Vivado 端只需要把
-硬體接好。
+按鍵偵測用**中斷**，不是主迴圈輪詢（polling）；ISR 與中斷設定都直接讀寫暫存器。
+
+## Demo
+
+[`demo/`](demo/) 資料夾：雙擊 `demo.bat` 就會燒 bitstream → 初始化 PS → 下載 ELF → 執行，
+步驟見 [`demo/README.md`](demo/README.md)。
+
+## 系統架構
+
+```
+            ┌──────────────────── PL（FPGA）────────────────────┐   ┌──────────── PS ────────────┐
+S6 (P16) ──>│ btn_debounce ──> axi_gpio_btn ──ip2intc_irpt──────────>│ IRQ_F2P[0] ─> GIC (ID 61)  │
+            │ 同步 + 20ms      (GPIO 輸入，開 interrupt)         │   │                 │          │
+            │                                                   │   │                 v          │
+LED0 (T22)<─│ pwm_breath  <──mode── axi_gpio_mode <──AXI───────────│ M_AXI_GP0 <── CPU0 (ISR)    │
+            │ 2 秒呼吸 PWM          (GPIO 輸出)                  │   │                            │
+            └───────────────────────────────────────────────────┘   └────────────────────────────┘
+```
+
+- **按鈕經過 PL**：S6 → 自寫的 `btn_debounce.v`（2 級同步器 + 20ms 防彈跳）→ AXI GPIO
+  （`axi_gpio_btn`）。AXI GPIO 開了 interrupt，輸入一變化就拉高 `ip2intc_irpt`，接到 PS7 的
+  **`IRQ_F2P[0]`** 進 GIC。
+- **LED 在 PL 產生波形**：CPU 只透過 AXI 寫 1 bit 的 `mode` 給 `pwm_breath.v`
+  （0 = 恆亮、1 = 呼吸），呼吸燈 PWM 全部由硬體產生，CPU 不用一直進中斷。
+- 時脈：`FCLK_CLK0` = 50 MHz，PL 全部同一個時脈域。
+
+### Vivado Block Design
+
+![HW2 Vivado Block Design](Upload/image/block_design.png)
+🔍 [看大圖](https://raw.githubusercontent.com/shj-F115112128/SOC_Practice/main/HW2/Upload/image/block_design.png)
+（Vivado Block Design 截圖；可重建腳本：[`vivado/create_bd.tcl`](vivado/create_bd.tcl)）
+
+| 方塊 | 用途 |
+|---|---|
+| `ps7` | Zynq PS。`M_AXI_GP0` 讓 CPU 存取 PL 的 AXI GPIO；`IRQ_F2P[0:0]` 收 PL 送來的中斷；`FCLK_CLK0` / `FCLK_RESET0_N` 提供 PL 時脈與 reset |
+| `ps7_axi_periph` | AXI Interconnect，1 個 master（`S00_AXI`）分給 2 個 slave（`M00_AXI` → `axi_gpio_mode`、`M01_AXI` → `axi_gpio_btn`） |
+| `rst_ps7_50M` | Processor System Reset：把 PS 的非同步 reset 同步到 50 MHz 時脈後再分給 PL（見下方說明） |
+| `axi_gpio_btn` | 1 bit **輸入**，開 interrupt。`gpio_io_i` 接防彈跳後的按鈕，`ip2intc_irpt` 接 `IRQ_F2P` |
+| `axi_gpio_mode` | 1 bit **輸出**。`gpio_io_o` 接 `pwm_breath` 的 `mode` |
+| `btn_debounce_0` | 自寫 RTL（[`btn_debounce.v`](vivado/rtl/btn_debounce.v)）：`btn` port → 同步 + 防彈跳 → `btn_out` |
+| `pwm_breath_0` | 自寫 RTL（[`pwm_breath.v`](vivado/rtl/pwm_breath.v)）：依 `mode` 輸出恆亮或 2 秒呼吸 PWM 到 `led0` |
+
+`btn` 是單一訊號的輸入 port（不是 GPIO 介面 port），因為按鈕要先經過 `btn_debounce` 才接到
+AXI GPIO，不能把 AXI GPIO 的 GPIO 介面直接 Make External。
+
+**為什麼要 `rst_ps7_50M`**：AXI 規格（IHI0022L §A2.1.2）規定 ARESETn「can be asserted
+asynchronously, but deassertion can only be synchronous with a rising edge of ACLK」。PS 的
+`FCLK_RESET0_N` 由軟體放開、跟 `FCLK_CLK0` 不同步；若拿掉它、把 `FCLK_RESET0_N` 直接
+接到各 reset 腳，`validate_bd_design` 會報 8 個 `CRITICAL WARNING [BD 41-1348] ... is connected
+to asynchronous reset source /ps7/FCLK_RESET0_N`，所以保留。
 
 ## 文件手冊
 
-白板上要找的「Zynq-7020 的手冊」是 Xilinx 原廠的晶片等級文件（Zynq-7000 Technical Reference
-Manual，**UG585**），裡面才會列出 PS 中斷控制器（GIC）、GPIO 等**有位址的暫存器**。
-`D:\Hardware\EGO-XZ7 User guide V1.2.pdf` 是 **EGO-XZ7 板子的硬體手冊**（排針、原理圖、
-LED/按鈕/開關的 FPGA pin 對應表），不含 PS 暫存器位址 — 兩份是不同文件，步驟 1、2 要查的是
-Xilinx 的晶片手冊，不是這份板子手冊。
-
-官方 UG585（線上）：https://docs.amd.com/r/en-US/ug585-zynq-7000-SoC-TRM
-PDF（UG585 v1.14, 2023-06-30, 1940 頁）：`D:\Hardware\UG585-Zynq-7000-TRM.pdf`
-
-`main.c` 裡用到的兩個中斷 ID 已經雙重核對過，兩個管道（Xilinx 工具鏈實際產生的檔案 +
-UG585 官方文件原文）給出的數字完全一致：
-
-1. **2026-10-18**：實際跑完 `vivado/create_bd.tcl` → generate bitstream → export hardware →
-   `hsi` 產生 standalone BSP，從真正產生出來的 `xparameters.h`／`xparameters_ps.h` 裡確認
-   `XPAR_XGPIOPS_0_INTR`=52、`XPAR_XTTCPS_0_INTR`=42。
-2. **同日**：在 UG585 PDF 裡用 pymupdf 全文搜尋找到原文（線上閱讀器是 canvas 動態渲染、翻了
-   半天還常常卡死，PDF 版直接全文搜尋快很多）：
-   - **GPIO=IRQ ID#52** — Chapter 14: General Purpose I/O (GPIO), p.414:「...combines all
-     interrupts for all GPIOs in all four banks to one output (**IRQ ID#52**) to the interrupt
-     controller.」
-   - **TTC0 counter/timer 0 = IRQ ID#42** — Chapter 8: Timers, p.254, **Figure 8-3「Triple
-     Counter Timer Block Diagram」**，圖上直接標示三個 counter 各自的 GIC IRQ ID：
-     Timer/Clock 0 → `TTC_0: IRQ ID # 42`，Timer/Clock 1 → `# 43`，Timer/Clock 2 → `# 44`
-     （TTC1 則是 69/70/71）。
-
-## 板上可用的輸入/輸出（摘自 EGO-XZ7 User Guide V1.2, §2.9）
-
-LED 全部在 PL（FPGA fabric）這側，8 顆：
-
-| 訊號 | FPGA Pin |
+| 手冊 | 用途 |
 |---|---|
-| LED0 | T22 |
-| LED1 | T21 |
-| LED2 | U22 |
-| LED3 | U21 |
-| LED4 | V22 |
-| LED5 | W22 |
-| LED6 | U19 |
-| LED7 | U14 |
+| **UG585** Zynq-7000 Technical Reference Manual（v1.14, 2023-06-30）— [線上](https://docs.amd.com/r/en-US/ug585-zynq-7000-SoC-TRM) | GIC 中斷控制器、IRQ ID 表、PS 暫存器位址 |
+| **PG144** AXI GPIO LogiCORE IP Product Guide | AXI GPIO 的暫存器（`GPIO_DATA`、`GIER`、`IPISR`、`IPIER`） |
+| **EGO-XZ7 User Guide V1.2** | 板子的 LED / 按鈕 / 開關接到哪個 FPGA pin |
 
-Push button 分兩種，對後面「用哪個 port 做中斷」很關鍵：
+暫存器位址要查 Xilinx 原廠的晶片手冊 UG585；EGO-XZ7 User Guide 是板子的硬體手冊
+（排針、原理圖、pin 對應表），不含暫存器位址。
+
+> 下文的頁碼是 UG585 PDF 頁碼（跟頁尾印的一樣）。截圖都放在
+> [`Upload/image/ug585/`](Upload/image/ug585/)。
+
+## 中斷相關暫存器
+
+按鈕中斷從按下到 CPU 一共經過三層，**每一層都要開**，中斷才會送到 CPU：
+
+```
+S6 按下 → btn_debounce → axi_gpio_btn（IPISR / IPIER / GIER）→ IRQ_F2P[0]
+        → GIC（ID 61：ICDISPR1 / ICDISER1 bit29）→ CPU（CPSR.I）→ S6IntrHandler
+```
+
+| 項目 | PL：`axi_gpio_btn`（基底 `0x41210000`，PG144） | GIC 中斷控制器（UG585） |
+|---|---|---|
+| **1. IRQ #：port** | GPIO 通道 1 bit0 → `ip2intc_irpt` → `IRQ_F2P[0]` | **IRQ ID 61** — p.238 Table 7-4 |
+| **2. pending register：port status** | **`IPISR`** bit0（`0x41210120`） | **`ICDISPR1`** bit29（`0xF8F01204`）— p.1523 |
+| **3. mask register：port enable** | **`IPIER`** bit0（`0x41210128`）+ **`GIER`** bit31（`0x4121011C`） | **`ICDISER1`** bit29（`0xF8F01104`）— p.1520 |
+
+GIC 的 `ICD*1` 這組暫存器管 ID 32～63，所以 ID 61 對應 61 − 32 = **bit29**。
+
+### 1. IRQ #：port
+
+![UG585 p.238 Table 7-4](Upload/image/ug585/p238_table7-4_spi_irq_id.png)
+
+> **UG585 p.238 Table 7-4「PS and PL Shared Peripheral Interrupts (SPI)」**
+> - 看 **PL 那一列「PL [2:0]」：IRQ ID 63:61**，PS-PL Signal Name = `IRQF2P[2:0]`，I/O = Input。
+>   也就是 PL 從 `IRQ_F2P[0]` 送進來的中斷 = **ID 61**（`IRQ_F2P[1]` = 62、`[2]` = 63）。
+> - Status Bits = `spi_status_0[31:29]` → ID 61 是 bit29，跟 `ICDISPR1` / `ICDISER1` 的 bit29 一致。
+> - Required Type = **Rising edge / High level**（PL 中斷兩種都可以，見下方觸發方式）。
+> - 同一張表第一列 GPIO = ID 52 是 **PS 內建 GPIO**（MIO 按鈕 S3/S4 用的，見最後的對照表）。
+> - Vivado 匯出的 `xparameters.h` 也產生
+>   `#define XPAR_FABRIC_AXI_GPIO_BTN_IP2INTC_IRPT_INTR 61U`，跟手冊一致。
+
+### 2. Pending register：port status
+
+**PL 端 — `axi_gpio_btn` 的 `IPISR`**（IP Interrupt Status Register，offset `0x120`）：
+bit0 = 通道 1 的輸入有變化。**toggle-on-write**：對讀到是 1 的 bit 寫 1 才會清成 0
+（直接對 0 的 bit 寫 1 反而會把它設成 pending）。
+
+**GIC 端 — `ICDISPR1`**：
+
+![UG585 p.1523 ICDISPR](Upload/image/ug585/p1523_gic_ICDISPR1.png)
+
+> **UG585 p.1523 ICDISPR0（Interrupt Set-pending Register）**
+> - 同樣的暫存器有 3 個：`ICDISPR0` 管 ID 0～31、**`ICDISPR1`（`0xF8F01204`）管 ID 32～63**、
+>   `ICDISPR2` 管 ID 64～95。本設計用 `ICDISPR1` **bit29**（ID 61）。
+> - 讀：1 = 該 ID 正在 pending；寫 1：手動把該 ID 設成 pending。
+> - 清除要寫對應的 **`ICDICPR1`（`0xF8F01284`）**，程式在打開中斷前先寫它清掉殘留的 pending。
+
+### 3. Mask register：port enable
+
+**PL 端 — `axi_gpio_btn` 的 `IPIER` + `GIER`**：
+
+| 暫存器 | offset | 寫入值 | 意思 |
+|---|---|---|---|
+| `IPIER`（IP Interrupt Enable） | `0x128` | bit0 = 1 | 通道 1 的中斷 enable |
+| `GIER`（Global Interrupt Enable） | `0x11C` | bit31 = 1 | 整顆 IP 的中斷總開關，關著的話 `ip2intc_irpt` 永遠是 0 |
+
+**GIC 端 — `ICDISER1`**：
+
+![UG585 p.1520 ICDISER1](Upload/image/ug585/p1520_gic_ICDISER1.png)
+
+> **UG585 p.1520 ICDISER1（Interrupt Set-enable Register 1，`0xF8F01104`）**
+> - 管 ID 32～63，寫 1 開啟對應的 ID：本設計寫 **bit29 = 1**（ID 61）。
+> - 寫 0 沒有作用；要關閉得寫對應的 **`ICDICER1`（`0xF8F01184`）**。
+> - 實機上板後用 debugger 讀到 `ICDISER1 = 0x20000000`（只有 bit29 = 1），確認 ID 61 已開啟。
+
+最後一層是 CPU 本身：CPSR 的 I bit 要清成 0（`Xil_ExceptionEnable()`）才會接受 IRQ。
+
+### 觸發方式
+
+![UG585 p.240 Figure 7-4](Upload/image/ug585/p240_fig7-4_ICDICFR.png)
+
+> **UG585 p.240 Figure 7-4「Interrupts ICDICFR Register for Sensitivity and Handling」**
+> - 每個 SPI ID 在 `ICDICFR` 佔 2 bit：**`01` = High-level active**、`11` = Rising-edge active。
+> - ID 61 在 **`ICDICFR3`**（ID 48～63，`0xF8F01C0C`），位置 (61 − 48) × 2 = **bits[27:26]**。
+> - AXI GPIO 的 `ip2intc_irpt` 在 `IPISR` 清掉前會**一直維持 High**，所以設成 **`01`（High level）**。
+>   上板讀到 `ICDICFR3 = 0x55555555`，bits[27:26] = `01`。
+
+### 為什麼 ISR 一定要清 `IPISR`
+
+GIC 是 High level 觸發，而 `ip2intc_irpt` 只要 `IPISR` bit0 沒清就一直是 High。ISR 不清的話，
+一離開 ISR，GIC 又會看到 pending，ISR 會被無限次反覆觸發。
+
+### 為什麼按一次會中斷兩次
+
+AXI GPIO 是「輸入有變化」就中斷，按下（0→1）、放開（1→0）各一次。ISR 清掉 `IPISR` 後讀
+`GPIO_DATA`：是 1（按下）才切換模式，是 0（放開）就不動作。按鍵的機械彈跳已經由 PL 的
+`btn_debounce` 濾掉，所以一次按壓剛好只有這兩次中斷。
+
+## 對應到 `main.c`
+
+[`sdk/src/main.c`](sdk/src/main.c) — 中斷設定全部直接讀寫暫存器（`Xil_In32` / `Xil_Out32`）：
+
+| 函式 | 暫存器操作 | 對應項目 |
+|---|---|---|
+| `SetupModeGpio()` | `axi_gpio_mode` `GPIO_TRI` = 0（輸出）、`GPIO_DATA` = 0（恆亮） | — |
+| `SetupBtnGpio()` | `GIER` = 0、`IPIER` = 0（先關）→ `GPIO_TRI` = 1（輸入） | — |
+|  | 讀 `IPISR` 再寫回，清掉殘留 | 2. pending |
+|  | `IPIER` bit0 = 1、`GIER` bit31 = 1 | 3. mask |
+| `SetupInterruptSystem()` | `XScuGic_Connect(ID 61, S6IntrHandler)`：登記 ISR | 1. IRQ # |
+|  | `ICDICER1` bit29（先關）→ `ICDICFR3` bits[27:26] = `01` | — |
+|  | `ICDIPR`（ID 61 那個 byte）= `0xA0` 優先權、`ICDIPTR` = `0x01` 送給 CPU0 | — |
+|  | `ICDICPR1` bit29：清掉殘留的 pending | 2. pending |
+|  | `ICDISER1` bit29 = 1 | 3. mask |
+|  | `Xil_ExceptionEnable()`：CPSR.I = 0 | — |
+| `S6IntrHandler()` | 讀 `IPISR` bit0 → 寫 1 清除 → 讀 `GPIO_DATA`，是 1 才切換 `mode` | 2. pending |
+| `main()` | 初始化完主迴圈空轉，所有行為都由中斷驅動 | — |
+
+唯一還用 BSP 的是 CPU 收到 IRQ 後的分派：`XScuGic_InterruptHandler` 讀 `ICCIAR` 取得 ID →
+呼叫登記的 ISR → 寫 `ICCEOIR` 結束中斷。
+
+## PL 端 RTL
+
+| 檔案 | 內容 | 驗證 |
+|---|---|---|
+| [`vivado/rtl/btn_debounce.v`](vivado/rtl/btn_debounce.v) | 2 級同步器 + 防彈跳：輸入要連續 20ms（1,000,000 clk @ 50 MHz）維持同一電位才採用 | [`tb_btn_debounce.v`](vivado/rtl/tb_btn_debounce.v)：模擬按下/放開各彈跳 5 次，輸出只變化 2 次，xsim PASS |
+| [`vivado/rtl/pwm_breath.v`](vivado/rtl/pwm_breath.v) | `mode`=0 恆亮；`mode`=1 時 1 kHz PWM、100 階亮度、三角波，每階 10ms → 200 階 = 2 秒 | [`tb_pwm_breath.v`](vivado/rtl/tb_pwm_breath.v)：縮小參數逐階核對亮燈 clk 數，xsim PASS |
+
+## 板上可用的輸入/輸出（EGO-XZ7 User Guide V1.2, §2.9）
 
 | 訊號 | 接到哪裡 | FPGA Pin |
 |---|---|---|
-| S3 | **PS MIO_50**（直接接 Zynq PS GPIO，可用 PS GPIO 中斷） | D13 |
-| S4 | **PS MIO_51**（同上） | C10 |
+| S3 | PS MIO_50（PS 專用腳，不經過 PL） | D13 |
+| S4 | PS MIO_51（同上） | C10 |
 | S5 (BTNU) | PL fabric I/O | T18 |
-| S6 (BTNC) | PL fabric I/O | P16 |
+| **S6 (BTNC)** | **PL fabric I/O ← 本設計使用** | **P16** |
 | S7 (BTNL) | PL fabric I/O | N15 |
 | S8 (BTNR) | PL fabric I/O | R18 |
 | S9 (BTND) | PL fabric I/O | R16 |
+| **LED0** | **PL fabric I/O ← 本設計使用** | **T22** |
 
-User Switch SW0~SW7 也都在 PL fabric（F22/G22/H22/F21/H19/H18/H17/M15），跟 S5~S9 一樣
-是 PL I/O，本身沒有中斷能力，要接中斷的話得透過 PL 端的 AXI GPIO IP（IP 本身有
-interrupt output，再接到 PS 的中斷輸入）才能產生中斷訊號給 GIC。
+按鈕要經過 FPGA，所以只能用 S5～S9 這 5 顆 PL 按鈕；S3/S4 接在 PS 專用的 MIO 腳，
+訊號直接進 PS 內建的 GPIO 控制器，不可能繞進 PL。腳位約束：
+[`vivado/constraints/hw2.xdc`](vivado/constraints/hw2.xdc)（`btn` → P16、`led0` → T22，皆 LVCMOS33）。
 
-**已決定：用 S4（PS MIO 按鈕）。** 直接是 PS GPIO，走 PS 內建的 GPIO controller + GIC，
-暫存器位址在 Zynq-7000 TRM 裡查得到，Vivado 端不用加 PL 端的 AXI GPIO IP 來做輸入，中斷
-處理全部在 SDK 這邊用 `XScuGic` 寫 ISR。
-
-**LED0 是 PL fabric pin（T22），不是 PS MIO**，所以輸出這邊要讓 PS 能夠驅動一個 PL 腳位。
-最簡單的做法是在 block design 把 **PS7 的 GPIO 用 EMIO 多拉一條出來**接到頂層 port、
-再用 XDC 把這個 port 綁到 LED0 的 T22 pin，SDK 端一樣用 `XGpioPs` 對這個 EMIO bit 做輸出
-（不需要額外的 PL IP）。
-
-**呼吸燈（T=2s）不是單純開/關，需要 PWM 概念才能做出亮度漸變**：
-- 用一顆週期性計時器中斷（例如 PS 的 TTC, Triple Timer Counter）當作 PWM 的高速載波
-  （carrier），在 ISR 裡用「on 多久、off 多久」控制瞬間亮度（軟體 PWM）。
-- 另外維護一個獨立的計數/變數，隨時間在 2 秒內把 duty cycle 從 0 爬升到最大、再降回 0，
-  形成呼吸的漸亮漸暗效果。
-- S4 的 ISR 本身很單純：只負責 toggle 一個模式旗標（固定恆亮 / 呼吸燈），真正的
-  PWM/呼吸邏輯跑在計時器中斷或主迴圈裡，兩個中斷來源要分開看（**S4 GPIO 中斷**＝按鍵
-  事件，**TTC 計時器中斷**＝PWM 載波），這也呼應白板上畫的多個 IRQ 向量。
-
-## SDK 程式架構
-
-[`sdk/src/main.c`](sdk/src/main.c) — standalone BSP，三個部分：
-
-- **S4 GPIO 中斷**（`S4IntrHandler`）：falling-edge 觸發，只做防彈跳 + toggle 一個模式旗標
-  （`LED_MODE_FIXED` / `LED_MODE_BREATH`），不碰 PWM 細節。
-- **TTC 週期中斷**（`TtcIntrHandler`）：10kHz tick 當軟體 PWM 的載波（100 階亮度 → PWM 頻率
-  100Hz，不閃爍）；依目前模式輸出固定恆亮，或依三角波（`ComputeBrightness`）算出瞬時亮度，
-  200 步 × 10ms/步 = 2 秒一個完整呼吸週期，剛好對上 T=2s 的要求。
-- **`main()`**：初始化 GPIO/GIC/TTC、接好兩個中斷來源後主迴圈空轉，所有行為都由中斷驅動。
-
-檔案開頭註記了目前寫死的腳位/中斷 ID（S4=MIO_51、LED0=EMIO bit0=pin 54、
-`XPAR_XGPIOPS_0_INTR`、`XPAR_XTTCPS_0_INTR`），這些要等 Vivado block design 匯出
-`xparameters.h` 後再核對、必要時修正。
-
-## Vivado Block Design
-
-[`vivado/create_bd.tcl`](vivado/create_bd.tcl) + [`vivado/constraints/hw2.xdc`](vivado/constraints/hw2.xdc)
-— 已經在 Vivado 2018.2 batch mode 實際建出來跑過 `validate_bd_design`，不是只有紙上規劃。
-
-設計本身很單純：**只有 PS7 一顆 IP，完全沒有 PL 邏輯**。
-
-- 關掉 `M_AXI_GP0`（S4、LED0 都不經過 PL 的 AXI 介面，PL 端不需要任何時脈接線）。
-- S4（MIO_51）走 PS 內建 GPIO，開 `PCW_GPIO_MIO_GPIO_ENABLE`，MIO_50/51 內部 pull-up 開啟。
-- LED0 是 PL pin（T22），用 `PCW_GPIO_EMIO_GPIO_WIDTH=1` 多拉一條 EMIO GPIO 出來，
-  對 GPIO interface 做「Make External」。Vivado 產生 wrapper 時會**自動插入 IOBUF**
-  把 O/T/I 三條線包成一個 inout port `led0_gpio_tri_io[0]`，不用自己手刻 IOBUF。
-- TTC0 預設是關閉的，要手動開 `PCW_TTC0_PERIPHERAL_ENABLE=1` 才能用（這顆是呼吸燈軟體
-  PWM 的計時器來源）。
-- DDR / FIXED_IO / PS_CLK 照標準流程拉到外部。
-
-**實測時發現一個跟板子手冊對不上的地方：** EGO-XZ7 UG 的 OCR 文字說 MIO_50/51 所在的
-bank（Bank501）是 1.8V，但 Vivado 的 PS7 IP 對這顆 part（XC7Z020-CLG484）直接把
-`PCW_MIO_50_IOTYPE` 限制成只能選 `LVCMOS 3.3V`（硬改成 1.8V 會報錯 out of range）。
-以 Vivado IP 本身的限制為準，`create_bd.tcl` 裡沒有去覆寫這個值。
-
-產生 HDL wrapper 後確認的 top-level port：`led0_gpio_tri_io[0]`（LED0 用），
-`hw2.xdc` 把它綁到 T22、`IOSTANDARD LVCMOS33`（LED 那顆 bank 本身是 3.3V，沒有疑義）。
-S3/S4 走 MIO，是晶片內部固定接線，不需要（也不能）另外下 XDC。
-
-**2026-10-18 更新：已經跑完整條流程到 bitstream + 軟體平台匯出。** 批次模式指令（不需要開
-GUI）：
+## 建置
 
 ```
 cd vivado
-vivado -mode batch -source create_bd.tcl     # 建 block design，驗證通過
-# 在 Vivado Tcl console 或另一個 -source 腳本裡：
-#   launch_runs synth_1; wait_on_run synth_1
-#   launch_runs impl_1 -to_step write_bitstream; wait_on_run impl_1
-#   open_run impl_1
-#   write_hwdef -force build/hw2_led_isr.sdk/system.hwdef
-#   write_sysdef -force -hwdef build/hw2_led_isr.sdk/system.hwdef \
-#       -bitfile build/hw2_led_isr.runs/impl_1/system_wrapper.bit \
-#       build/hw2_led_isr.sdk/system.hdf
-
-# 再用 hsi（命令列，不用開 SDK GUI）從 system.hdf 產生 standalone BSP：
-hsi -source gen_bsp.tcl   # open_hw_design + create_sw_design + generate_bsp
+vivado -mode batch -source create_bd.tcl -tclargs ./build/plbtn   # 建專案 + block design
+# 之後在 Vivado：Generate Bitstream → Export Hardware（含 bitstream）
+# SDK / hsi：用匯出的 HDF 產生 standalone BSP，再編譯 sdk/src/main.c
 ```
 
-產生的 `xparameters.h`（在 `bsp/ps7_cortexa9_0/include/`）證實 `main.c` 裡寫的裝置/中斷 ID
-巨集全部正確，細節見下方「待辦」。`build/` 整個資料夾已經 gitignore，不會進 repo；要重新產生
-就照上面流程重跑。
+`vivado/build/` 已經 gitignore；上板用的成品另外複製一份在 [`demo/`](demo/)。
+改完 `main.c` 後雙擊 `demo/build_elf.bat` 就能重新編譯。
 
-## 圖表
+## 對照：PS 內建 GPIO（MIO 按鈕）的中斷暫存器
 
-> 圖都用 [draw.io](https://www.diagrams.net/) 畫，原始 `.drawio` 檔放在
-> [`Upload/`](Upload/)，匯出的 PNG 放在 [`Upload/image/`](Upload/image/) 並直接嵌在下面；
-> 圖說下方附「🔍 看大圖」連結可看原始解析度，也連到可編輯的 `.drawio` 原始檔（跟 HW1 同一套
-> 慣例）。
+板上的 S3/S4 接在 PS 專用的 MIO 腳，中斷走 PS 內建的 GPIO 控制器（IRQ ID 52），不經過 PL。
+下表對照它和本設計 AXI GPIO 的三項暫存器，角色一一對應：
 
-### 1. Breakdown（模組/process 拆解樹）
+| 項目 | PS GPIO（S4 = MIO_51 → Bank1 bit19） | PL AXI GPIO（本設計） |
+|---|---|---|
+| 1. IRQ # | IRQ ID **52**（Table 7-4 GPIO 列） | IRQ ID **61**（`IRQ_F2P[0]`） |
+| 2. pending | `INT_STAT_1` bit19（`0xE000A258`） | `IPISR` bit0 |
+| 3. mask | `INT_EN_1` bit19（`0xE000A250`） | `IPIER` bit0 + `GIER` bit31 |
+| 觸發方式 | `INT_TYPE_1` / `INT_POLARITY_1` / `INT_ANY_1` | 固定為輸入有變化就中斷 |
 
-![HW2 Breakdown](Upload/image/breakdown.drawio.png)
-🔍 [看大圖](https://raw.githubusercontent.com/shj-F115112128/SOC_Practice/main/HW2/Upload/image/breakdown.drawio.png) ／
-原始檔：[Upload/breakdown.drawio](Upload/breakdown.drawio)
+![UG585 p.1415 INT_STAT_1](Upload/image/ug585/p1415_gpio_INT_STAT_1.png)
 
-`main.c` 的三個 `Setup*()` 子模組 + 兩個中斷服務常式（ISR）+ `main()` 本身，畫法沿用
-`Lab_hardware_practice` 系列的 breakdown tree 風格（子模組=彩色方塊，process=白色葉節點）。
+> **UG585 p.1415 INT_STAT_1**（`0xE000A258`）— PS GPIO Bank1（MIO[53:32]）的中斷狀態，
+> Access Type = **wtc**（write-to-clear，寫 1 清除）。MIO_51 → bit19（51 − 32）。
+> 角色等同 AXI GPIO 的 `IPISR`。
 
-### 2. 方塊電路圖（Vivado Block Design）
+![UG585 p.1414 INT_EN_1](Upload/image/ug585/p1414_gpio_INT_EN_1.png)
 
-![HW2 Vivado Block Design](Upload/image/block_diagram.drawio.png)
-🔍 [看大圖](https://raw.githubusercontent.com/shj-F115112128/SOC_Practice/main/HW2/Upload/image/block_diagram.drawio.png)
-（這張是直接截 Vivado Block Design 畫面，不是 `.drawio` 來源；檔名沿用慣例方便跟其他圖放
-在同一個資料夾。原始可重建腳本：[`vivado/create_bd.tcl`](vivado/create_bd.tcl)）
+> **UG585 p.1414 INT_EN_1**（`0xE000A250`）— PS GPIO Bank1 的中斷 Enable/Unmask，write-only，
+> 寫 1 開啟對應 bit。關閉用 `INT_DIS_1`（`0xE000A254`）。角色等同 AXI GPIO 的 `IPIER`。
 
-`ps7` 只有三個對外接口：`led0_gpio`（EMIO，接 LED0）、`DDR`、`FIXED_IO`。`TTC0_WAVE*_OUT`、
-`FCLK_CLK0`、`FCLK_RESET0_N` 這幾根留在圖上但沒接線，是 PS7 IP 預設就會畫出來的可選接腳，
-這個設計用不到（TTC0 中斷走內部路徑，不需要外部 WAVE 腳位；沒有 PL 邏輯所以也不需要
-FCLK/RESET 接給任何東西）——跟第 1 節 Breakdown 圖對照：S4 對應的 MIO 腳位是 PS7 內部晶片
-固定接線，不會出現在 block design 畫面上。
+![UG585 p.1415 INT_TYPE_1](Upload/image/ug585/p1415_gpio_INT_TYPE_1.png)
 
-### 3. FSM（LED 模式狀態機）
+> **UG585 p.1415 INT_TYPE_1**（`0xE000A25C`）— 1 = edge、0 = level。
 
-![HW2 LED Mode FSM](Upload/image/led_mode_fsm.drawio.png)
-🔍 [看大圖](https://raw.githubusercontent.com/shj-F115112128/SOC_Practice/main/HW2/Upload/image/led_mode_fsm.drawio.png) ／
-原始檔：[Upload/led_mode_fsm.drawio](Upload/led_mode_fsm.drawio)
+![UG585 p.1416 INT_POLARITY_1](Upload/image/ug585/p1416_gpio_INT_POLARITY_1.png)
 
-沿用 HW1（`ahb_slave_fsm.drawio`）的配色：灰=idle-like 的 `FIXED` 狀態，綠=active 的
-`BREATH` 狀態。只有 `S4IntrHandler` 會觸發狀態轉移，`TtcIntrHandler` 的週期中斷在任一狀態下
-都持續執行但不改變這張圖上的狀態。
+> **UG585 p.1416 INT_POLARITY_1**（`0xE000A260`）— 0 = falling/low、1 = rising/high。
 
-### 4. AOV（Activity-on-Vertex）
+![UG585 p.415 Table 14-1](Upload/image/ug585/p415_table14-1_gpio_trigger.png)
 
-![HW2 AOV](Upload/image/aov.drawio.png)
-🔍 [看大圖](https://raw.githubusercontent.com/shj-F115112128/SOC_Practice/main/HW2/Upload/image/aov.drawio.png) ／
-原始檔：[Upload/aov.drawio](Upload/aov.drawio)
+> **UG585 p.415 Table 14-1「GPIO Interrupt Trigger Settings」**— `INT_TYPE` / `INT_POLARITY` /
+> `INT_ANY` 的組合，例如 MIO 按鈕按下為 low 時用 **Falling edge-sensitive = 1 / 0 / 0**。
+> 下方 Limitation：GPIO 控制器暫存器只能用 32-bit 存取。
 
-依照
-`D:\Hardware\PARER\梓維的論文\電腦視覺加速系統晶片之階層式記憶體架構多目標最佳化_論文初稿.pdf`
-3.1.3/3.1.4 節的 AOV 規則畫：節點一律圓形、顏色由 `node_type` 唯一決定（不因階段改變）、
-有向邊標傳輸週期/格式/位寬。這張圖把論文原本針對影像串流管線（VI/IP/VO）的規則，類比套用到
-HW2 這個中斷驅動的嵌入式控制系統上——S4/TTC0 類比 `video_in`，LED0 類比 `video_out`，
-`g_Mode`/`pwm_counter`/`breath_step` 借用 `pingpong_buffer`（粉紅）表示「狀態記憶體」但不是
-論文原定義的雙緩衝交替讀寫，`ComputeBrightness` 類比 `user_ip`；沒有 DDR 層級，所以不出現
-黃色節點。這些跨領域類比都寫在圖說備註裡，不是逐字沿用論文的影像處理語意。
+## 驗證結果
 
-### 5. MSC (timespec)
-
-![HW2 MSC timespec](Upload/image/msc_timespec.drawio.png)
-🔍 [看大圖](https://raw.githubusercontent.com/shj-F115112128/SOC_Practice/main/HW2/Upload/image/msc_timespec.drawio.png) ／
-原始檔：[Upload/msc_timespec.drawio](Upload/msc_timespec.drawio)
-
-沿用 HW1（`ahb_msc.drawio`）的畫法：方框 actor + 虛線生命線 + 場景分隔線，5 個 actor
-（`main()`/S4按鍵/`S4IntrHandler`/`TtcIntrHandler`/LED0）、4 個場景（A 開機初始化、B 第一次
-按 S4 切到 BREATH、C 穩態呼吸迴圈、D 第二次按 S4 切回 FIXED）。比 HW1 的 MSC 多了明確時間戳：
-TTC0 tick=100us、防彈跳視窗=200ms、呼吸週期=200 tick×10ms=2000ms=T=2s。圖說備註裡也老實
-標註「S4→ISR 中斷延遲是 ARM GIC 典型量級示意，不是實測值」，跟 HW1 一貫的「理論值 vs. 實測值
-分開講」原則一致。
-
-## 待辦
-
-- [x] 確認輸入/輸出：S4（PS MIO_51）+ LED0（PL T22）
-- [x] 確認用 PS MIO 中斷（不用 PL AXI GPIO 中斷）
-- [x] SDK 程式架構：S4 ISR + TTC 軟體 PWM 呼吸燈 + 狀態機（[`sdk/src/main.c`](sdk/src/main.c)）
-- [x] Vivado block design：PS7-only，EMIO 接 LED0，validate_bd_design 通過
-      （[`vivado/create_bd.tcl`](vivado/create_bd.tcl)）
-- [x] Breakdown / FSM / AOV / MSC(timespec) 四張圖（見上方「圖表」）
-- [x] 方塊電路圖：Vivado BD 實際截圖（見上方第2節）
-- [x] Vivado：Generate Bitstream（`system_wrapper.bit`，DRC 0 errors，批次模式跑出來的）
-- [x] Vivado：Export Hardware（`write_hwdef` + `write_sysdef`，含 bitstream，產生 `system.hdf`）
-- [x] 用 `hsi`（命令列工具，不用開 SDK GUI）從 `system.hdf` 產生 standalone BSP，拿到真正的
-      `xparameters.h` 核對 `main.c` 裡的裝置 ID / 中斷 ID 巨集：**全部對上**——
-      `XPAR_XGPIOPS_0_INTR` = `XPS_GPIO_INT_ID` = **52**、
-      `XPAR_XTTCPS_0_INTR` = `XPS_TTC0_0_INT_ID` = **42**，
-      跟 UG585（[官方連結](https://docs.amd.com/r/en-US/ug585-zynq-7000-SoC-TRM)）查到的 SPI ID
-      一致，不用再改 `main.c`。這兩個巨集定義在 BSP 的 `xparameters_ps.h`（被 `xparameters.h`
-      `#include`），不在 GPIOPS/TTCPS 驅動自己產生的那段——第一次核對時只翻了
-      `xparameters.h` 本體沒看到就以為巨集名稱錯了，後來才在 `xparameters_ps.h` 裡找到。
-- [ ] 實機測試：開機固定恆亮 → 按 S4 進入呼吸燈、確認週期約 2 秒 → 再按一下切回固定恆亮
-      （還需要實體 EGO-XZ7 板子 + 燒錄 bitstream + 跑這個 standalone app）
+- PL RTL：`tb_btn_debounce`、`tb_pwm_breath` 在 xsim 皆 PASS。
+- Vivado：bitstream timing met、0 critical warning；`xparameters.h` 的
+  `XPAR_FABRIC_AXI_GPIO_BTN_IP2INTC_IRPT_INTR` = 61，與 UG585 Table 7-4 一致。
+- 上板：燒錄 + 執行成功，debugger 讀到 CPU 停在 `main()` 主迴圈、`ICDISER1` = `0x20000000`
+  （bit29 = 1）、`ICDICFR3` bits[27:26] = `01`、CPSR.I = 0。
