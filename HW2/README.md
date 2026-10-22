@@ -2,7 +2,7 @@
 
 平台：EGO-XZ7（Zynq-7000, XC7Z020），開發環境 Vivado + Xilinx SDK。
 
-## 作業要求（課堂白板, 2026-10-17）
+## 作業要求
 
 1. 找 SoC（Zynq-7020）的手冊：**User Guide (UG xx)** + **Programming Guide**，從中找出跟
    BSP（Board Support Package）、ISR() 相關的章節。
