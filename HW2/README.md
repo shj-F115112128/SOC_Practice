@@ -26,29 +26,10 @@
 [`demo/`](demo/) 資料夾：雙擊 `demo.bat` 就會燒 bitstream → 初始化 PS → 下載 ELF → 執行，
 步驟見 [`demo/README.md`](demo/README.md)。
 
-## 系統架構
-
-```
-            ┌──────────────────── PL（FPGA）────────────────────┐   ┌──────────── PS ────────────┐
-S6 (P16) ──>│ btn_debounce ──> axi_gpio_btn ──ip2intc_irpt──────────>│ IRQ_F2P[0] ─> GIC (ID 61)  │
-            │ 同步 + 20ms      (GPIO 輸入，開 interrupt)         │   │                 │          │
-            │                                                   │   │                 v          │
-LED0 (T22)<─│ pwm_breath  <──mode── axi_gpio_mode <──AXI───────────│ M_AXI_GP0 <── CPU0 (ISR)    │
-            │ 2 秒呼吸 PWM          (GPIO 輸出)                  │   │                            │
-            └───────────────────────────────────────────────────┘   └────────────────────────────┘
-```
-
-- **按鈕經過 PL**：S6 → 自寫的 `btn_debounce.v`（2 級同步器 + 20ms 防彈跳）→ AXI GPIO
-  （`axi_gpio_btn`）。AXI GPIO 開了 interrupt，輸入一變化就拉高 `ip2intc_irpt`，接到 PS7 的
-  **`IRQ_F2P[0]`** 進 GIC。
-- **LED 在 PL 產生波形**：CPU 只透過 AXI 寫 1 bit 的 `mode` 給 `pwm_breath.v`
-  （0 = 恆亮、1 = 呼吸），呼吸燈 PWM 全部由硬體產生，CPU 不用一直進中斷。
-- 時脈：`FCLK_CLK0` = 50 MHz，PL 全部同一個時脈域。
-
-### Vivado Block Design
+## Vivado Block Design
 
 ![HW2 Vivado Block Design](Upload/image/block_design.png)
-🔍 [看大圖](https://raw.githubusercontent.com/shj-F115112128/SOC_Practice/main/HW2/Upload/image/block_design.png)
+🔍 [看大圖](https://raw.githubusercontent.com/shj-F115112128/SOC_Practice/master/HW2/Upload/image/block_design.png)
 （Vivado Block Design 截圖；可重建腳本：[`vivado/create_bd.tcl`](vivado/create_bd.tcl)）
 
 | 方塊 | 用途 |
