@@ -4,11 +4,13 @@
 
 ## 題目
 
-1. 從 Zynq-7020 的手冊找出跟 BSP（Board Support Package）、ISR 相關的章節。
-2. 找出中斷控制器相關的暫存器：1. IRQ #（port）、2. pending register（port status）、
-   3. mask register（port enable）。
-3. 按下 push button 產生中斷，按鈕訊號經過 FPGA（PL）再進中斷控制器；用找到的暫存器寫
-   Driver + ISR，讓 LED 有客製化反應。
+1. 找 Zynq-7020 的手冊（user guide、programming guide），從中找出 BSP（Board Support Package）
+   與 ISR 的寫法。→ [BSP 與 ISR](#bsp-與-isr)
+2. 找手冊裡跟中斷相關的 port（有位址的暫存器）：1. IRQ #（port）、2. pending register（port status）、
+   3. mask register（port enable）。→ [中斷相關暫存器](#中斷相關暫存器)
+3. ① 隨便亮一顆 LED：C（SDK）→ FPGA（Vivado、`*.v`）→ LED。
+   ② 按下按鈕後 LED 有變化：按鈕訊號經過 FPGA（PL）再進中斷控制器，用第 2 項找到的暫存器寫
+   Driver + ISR。
 
 ## 功能規格
 
@@ -20,6 +22,10 @@
   3. 再按一下切回恆亮，之後每按一次就在兩個狀態間切換。
 
 按鍵偵測用中斷，不用主迴圈 polling；ISR 與中斷設定都直接讀寫暫存器。
+
+對應題目 3：
+- ①：開機時 `main.c` 的 `SetupModeGpio()` 把 `axi_gpio_mode` 寫 0，PL 的 `pwm_breath.v` 收到後讓 LED0 恆亮。
+- ②：S6 → `btn_debounce.v` → `axi_gpio_btn` → GIC → `S6IntrHandler()` 切換 `mode`，LED0 在恆亮與呼吸之間切換。
 
 ## Demo
 
@@ -52,12 +58,70 @@
 
 | 手冊 | 用途 |
 |---|---|
-| UG585 Zynq-7000 Technical Reference Manual（v1.14, 2023-06-30），[線上版](https://docs.amd.com/r/en-US/ug585-zynq-7000-SoC-TRM) | GIC 中斷控制器、IRQ ID 表、PS 暫存器位址 |
+| UG585 Zynq-7000 Technical Reference Manual（v1.14, 2023-06-30），[線上版](https://docs.amd.com/r/en-US/ug585-zynq-7000-SoC-TRM) | User guide。Ch.7 Interrupts：GIC、IRQ ID 表、中斷的 programming model；附錄 B：暫存器位址 |
+| UG821 Zynq 7000 SoC Software Developers Guide（v13.0, 2023-09-21） | Programming guide。Ch.2：bare-metal BSP 的內容與 driver 架構 |
 | PG144 AXI GPIO LogiCORE IP Product Guide | AXI GPIO 的暫存器（`GPIO_DATA`、`GIER`、`IPISR`、`IPIER`） |
 | EGO-XZ7 User Guide V1.2 | 板子的 LED / 按鈕接到哪個 FPGA pin |
 
 暫存器位址要查 UG585；EGO-XZ7 User Guide 是板子的硬體手冊（排針、原理圖、pin 對應），不含暫存器位址。
-下文頁碼都是 UG585 的 PDF 頁碼，截圖放在 [`Upload/image/ug585/`](Upload/image/ug585/)。
+下文頁碼都是 PDF 頁碼（跟頁尾印的一樣），截圖放在 [`Upload/image/ug585/`](Upload/image/ug585/)、
+[`Upload/image/ug821/`](Upload/image/ug821/)。
+
+## BSP 與 ISR
+
+### BSP
+
+![UG821 p.16 BSP](Upload/image/ug821/p16_bsp.png)
+
+UG821 p.16：bare-metal BSP 是程式最底層的 libraries 與 drivers，裡面包含 exception handling，
+也就是 CPU 收到 IRQ 之後要跳去哪裡的那一段。
+
+![UG821 p.14 Figure 3](Upload/image/ug821/p14_fig3_driver_arch.png)
+
+UG821 p.14 Figure 3：BSP 的 driver 分成 Layer 1（Device Driver，像 `XScuGic_*` 這種 API）和
+Direct Hardware Interface（直接讀寫暫存器）。這次中斷的開關都用 Direct Hardware Interface 自己寫，
+只有 IRQ 分派用 Layer 1。
+
+用到的 BSP 檔案：
+
+| 標頭檔 | 用到的東西 |
+|---|---|
+| `xparameters.h` | AXI GPIO 基底位址、`XPAR_FABRIC_AXI_GPIO_BTN_IP2INTC_IRPT_INTR`（= 61） |
+| `xil_io.h` | `Xil_In32` / `Xil_Out32` / `Xil_Out8`，讀寫暫存器 |
+| `xil_exception.h` | `Xil_ExceptionInit`、`Xil_ExceptionRegisterHandler`、`Xil_ExceptionEnable` |
+| `xscugic.h` | `XScuGic_LookupConfig`、`XScuGic_CfgInitialize`、`XScuGic_Connect`、`XScuGic_InterruptHandler` |
+
+### 中斷進來後怎麼跑到 ISR
+
+![UG585 p.243-244 Programming Model](Upload/image/ug585/p243_programming_model.png)
+
+UG585 p.243–244（Ch.7 Programming Model）：每個中斷都有自己的 ID，ISR 先讀 GIC 暫存器判斷是哪個 ID，
+再去讀週邊的 interrupt status 暫存器。
+
+BSP 裡有一張 IRQ ID 對 ISR 的表，`XScuGic_Connect(&GicInst, 61, S6IntrHandler, NULL)` 就是把
+`S6IntrHandler` 填進第 61 格。按下 S6 之後：
+
+```
+GIC ID 61 pending → CPU 收到 IRQ → PC 跳到 IRQ exception vector
+  → XScuGic_InterruptHandler：讀 ICCIAR 拿到 ID 61 → 查表第 61 格 → 呼叫 S6IntrHandler()
+  → ISR 結束後寫 ICCEOIR，中斷結束
+```
+
+ISR 本身（[`sdk/src/main.c`](sdk/src/main.c)）：
+
+```c
+static void S6IntrHandler(void *CallBackRef)
+{
+    if (Xil_In32(BTN_GPIO_IPISR) & CH1_INTR) {      /* pending：是按鈕通道觸發的 */
+        Xil_Out32(BTN_GPIO_IPISR, CH1_INTR);        /* 寫 1 清除 */
+        g_IntrCount++;
+        if (Xil_In32(BTN_GPIO_DATA) & 0x1u) {       /* 按下才切換，放開不動作 */
+            g_Mode = (g_Mode == LED_MODE_FIXED) ? LED_MODE_BREATH : LED_MODE_FIXED;
+            Xil_Out32(MODE_GPIO_DATA, (u32)g_Mode);
+        }
+    }
+}
+```
 
 ## 中斷相關暫存器
 
@@ -141,7 +205,7 @@ ID 61 在 `ICDICFR3`（ID 48～63，`0xF8F01C0C`）的 bits[27:26]，(61 − 48)
 | `S6IntrHandler()` | 讀 `IPISR` bit0、寫 1 清除，再讀 `GPIO_DATA`，是 1 才切換 `mode` |
 | `main()` | 初始化完就空轉，LED 切換都由中斷處理 |
 
-BSP 只留 CPU 收到 IRQ 後的分派：`XScuGic_InterruptHandler` 讀 `ICCIAR` 拿 ID、呼叫 ISR、寫 `ICCEOIR` 結束。
+BSP 只留 CPU 收到 IRQ 後的分派，見 [BSP 與 ISR](#bsp-與-isr)。
 
 ## PL 端 RTL
 
