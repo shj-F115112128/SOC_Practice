@@ -1,14 +1,6 @@
-// HW2 - S6 (BTNC) 按鈕同步 + 防彈跳（PL 端硬體）
-//
-// btn_in  ：板上 PL 按鈕（P16），按下 = 1（EGO-XZ7 PL 按鈕為 active-high）
-// btn_out ：防彈跳後的穩定電位，接 AXI GPIO (axi_gpio_btn) 的 gpio_io_i
-//
-// AXI GPIO 開了 interrupt 之後，輸入只要「變化」就會在 IPISR 記一筆、拉 ip2intc_irpt，
-// 所以按下、放開各會產生一次中斷；這裡負責把機械彈跳濾掉，確保一次按壓只有一次乾淨的
-// 0->1、一次乾淨的 1->0，CPU 端 ISR 不用再自己做軟體防彈跳。
-//
-// 預設參數以 CLK_HZ = 50 MHz（FCLK_CLK0）計算：
-//   DEBOUNCE_MS = 20 -> 輸入要連續 1,000,000 clk 維持同一電位才採用
+// HW2 S6 按鈕同步 + 防彈跳
+// btn_in 接 P16（按下 = 1），btn_out 接 axi_gpio_btn 的 gpio_io_i
+// 50 MHz 下 20ms = 1000000 clk
 
 `timescale 1ns/1ps
 module btn_debounce #(

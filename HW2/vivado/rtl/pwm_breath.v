@@ -1,15 +1,5 @@
-// HW2 - LED0 呼吸燈 PWM（PL 端硬體）
-//
-// mode = 0：LED 恆亮
-// mode = 1：2 秒週期呼吸燈（100 階亮度，三角波：1 秒漸亮 + 1 秒漸暗）
-//
-// mode 由 PS 透過 AXI GPIO 寫入（S6 按鈕中斷的 ISR 負責切換），跟 AXI GPIO 同一個 FCLK_CLK0
-// 時脈域，不需要跨時脈同步。
-//
-// 預設參數以 CLK_HZ = 50 MHz 計算：
-//   PWM 週期   = PWM_RES * CLK_PER_TICK = 100 * 500 clk = 50000 clk = 1 ms（1 kHz，不閃爍）
-//   每一階     = 1 個 PWM 週期 * STEP_PWM_CYCLES = 10 ms
-//   呼吸週期   = 2 * PWM_RES 階 * 10 ms = 2000 ms
+// HW2 LED0 呼吸燈
+// mode = 0 恆亮，mode = 1 呼吸（1 kHz PWM，100 階，每階 10ms，來回 2 秒）
 
 `timescale 1ns/1ps
 module pwm_breath #(

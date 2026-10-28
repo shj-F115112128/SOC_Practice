@@ -1,4 +1,4 @@
-# HW2 — Zynq-7020 中斷與 LED/Push Button 驅動
+# HW2：Zynq-7020 中斷與 LED/Push Button 驅動
 
 平台：EGO-XZ7（Zynq-7000, XC7Z020），開發環境 Vivado 2018.2 + Xilinx SDK 2018.2。
 
@@ -74,7 +74,7 @@ S6 → btn_debounce → axi_gpio_btn (IPISR/IPIER/GIER) → IRQ_F2P[0]
 | 2. pending：port status | `IPISR` bit0（`0x41210120`） | `ICDISPR1` **bit29**（`0xF8F01204`），p.1523 |
 | 3. mask：port enable | `IPIER` bit0（`0x41210128`）+ `GIER` bit31（`0x4121011C`） | `ICDISER1` **bit29**（`0xF8F01104`），p.1520 |
 
-GIC 的 `ICD*1` 這組暫存器管 ID 32～63，所以 ID 61 是 61 − 32 = bit29。
+GIC 的 `ICD*1` 這組暫存器管 ID 32～63，所以 ID 61 是 61 - 32 = bit29。
 
 ### 1. IRQ #：port
 
@@ -119,7 +119,7 @@ GIC 端是 `ICDISER1`：
 ![UG585 p.240 Figure 7-4](Upload/image/ug585/p240_fig7-4_ICDICFR.png)
 
 每個 SPI 在 `ICDICFR` 佔 2 bit，`01` 是 high level、`11` 是 rising edge。
-ID 61 在 `ICDICFR3`（ID 48～63，`0xF8F01C0C`）的 bits[27:26]，(61 − 48) × 2 = 26。
+ID 61 在 `ICDICFR3`（ID 48～63，`0xF8F01C0C`）的 bits[27:26]，(61 - 48) * 2 = 26。
 `ip2intc_irpt` 在 `IPISR` 清掉之前會一直是 High，所以設成 `01`；上板讀到 `ICDICFR3 = 0x55555555`。
 
 因為是 level 觸發，ISR 裡一定要清 `IPISR`，不然離開 ISR 後 GIC 又看到 pending，會一直重進 ISR。
@@ -134,8 +134,8 @@ ID 61 在 `ICDICFR3`（ID 48～63，`0xF8F01C0C`）的 bits[27:26]，(61 − 48)
 | 函式 | 暫存器操作 |
 |---|---|
 | `SetupModeGpio()` | `axi_gpio_mode` 的 `GPIO_TRI` = 0（輸出）、`GPIO_DATA` = 0（恆亮） |
-| `SetupBtnGpio()` | 先把 `GIER`、`IPIER` 清 0 → `GPIO_TRI` = 1 → 讀 `IPISR` 寫回清殘留 → `IPIER` bit0、`GIER` bit31 設 1 |
-| `SetupInterruptSystem()` | `XScuGic_Connect` 把 ID 61 掛到 `S6IntrHandler` → 關 `ICDICER1` bit29 → `ICDICFR3` 設 level → `ICDIPR` 優先權 `0xA0`、`ICDIPTR` 送 CPU0 → 寫 `ICDICPR1` 清 pending → `ICDISER1` bit29 = 1 → `Xil_ExceptionEnable()` |
+| `SetupBtnGpio()` | 設成輸入、清掉 `IPISR` 殘留，再開 `IPIER` bit0 和 `GIER` bit31 |
+| `SetupInterruptSystem()` | ID 61 接到 `S6IntrHandler`，`ICDICFR3` 設 level 觸發，清 `ICDICPR1` 後開 `ICDISER1` bit29，最後 `Xil_ExceptionEnable()` |
 | `S6IntrHandler()` | 讀 `IPISR` bit0、寫 1 清除，再讀 `GPIO_DATA`，是 1 才切換 `mode` |
 | `main()` | 初始化完就空轉，LED 切換都由中斷處理 |
 
