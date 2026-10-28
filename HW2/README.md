@@ -84,8 +84,6 @@ UG585 p.238 Table 7-4 最下面 PL [2:0] 那一列：`IRQF2P[2:0]` 對應 IRQ ID
 所以從 `IRQ_F2P[0]` 進來的就是 ID 61，Status Bits 是 `spi_status_0[31:29]`，同樣落在 bit29。
 Vivado 產生的 `xparameters.h` 裡 `XPAR_FABRIC_AXI_GPIO_BTN_IP2INTC_IRPT_INTR` 也是 61U。
 
-表格第一列的 GPIO（ID 52）是 PS 內建 GPIO，給 MIO 按鈕 S3/S4 用，跟這次的設計無關。
-
 ### 2. Pending register：port status
 
 PL 端是 `axi_gpio_btn` 的 `IPISR`（offset `0x120`），bit0 = 通道 1 的輸入有變化。
@@ -156,15 +154,9 @@ BSP 只留 CPU 收到 IRQ 後的分派：`XScuGic_InterruptHandler` 讀 `ICCIAR`
 
 | 訊號 | 接到 | FPGA Pin |
 |---|---|---|
-| S3 / S4 | PS MIO_50 / MIO_51（PS 專用腳） | D13 / C10 |
-| S5 (BTNU) | PL | T18 |
-| S6 (BTNC) | PL（本題使用） | P16 |
-| S7 (BTNL) | PL | N15 |
-| S8 (BTNR) | PL | R18 |
-| S9 (BTND) | PL | R16 |
-| LED0 | PL（本題使用） | T22 |
+| S6 (BTNC) | PL | P16 |
+| LED0 | PL | T22 |
 
-題目要求訊號經過 PL，所以只能用 S5～S9；S3/S4 直接進 PS 的 GPIO 控制器，繞不進 PL。
 腳位約束在 [`vivado/constraints/hw2.xdc`](vivado/constraints/hw2.xdc)（LVCMOS33）。
 
 ## 建置
@@ -178,17 +170,6 @@ vivado -mode batch -source create_bd.tcl -tclargs ./build/plbtn   # 建專案 + 
 
 `vivado/build/` 有 gitignore，上板用的檔案另外複製一份在 [`demo/`](demo/)。
 改完 `main.c` 後雙擊 `demo/build_elf.bat` 就能重新編譯。
-
-## 補充：PS GPIO（MIO 按鈕）的對應暫存器
-
-S3/S4 走 PS 內建 GPIO（IRQ ID 52），以 S4（MIO_51 → Bank1 bit19）為例：
-
-| 項目 | PS GPIO | 本題 AXI GPIO |
-|---|---|---|
-| 1. IRQ # | ID 52 | ID 61 |
-| 2. pending | `INT_STAT_1` bit19（`0xE000A258`，寫 1 清除） | `IPISR` bit0 |
-| 3. mask | `INT_EN_1` bit19（`0xE000A250`，關閉用 `INT_DIS_1`） | `IPIER` bit0 + `GIER` bit31 |
-| 觸發方式 | `INT_TYPE_1` / `INT_POLARITY_1` / `INT_ANY_1`（UG585 p.415 Table 14-1） | 固定為輸入變化 |
 
 ## 驗證結果
 
