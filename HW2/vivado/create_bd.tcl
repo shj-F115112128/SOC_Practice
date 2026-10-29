@@ -1,4 +1,4 @@
-# HW2 block design：S6 (BTNC, PL P16) 中斷按鈕 + PL 呼吸燈 PWM (rtl/pwm_breath.v) -> LED0 (T22)
+# HW2 block design：S6 (BTNC, PL P16) 中斷按鈕 + PL 呼吸燈 PWM (rtl/breathing_pwm_top.vhd) -> LED0 (T22)
 #
 # 用法（在 vivado/ 目錄下）：
 #   vivado -mode batch -source create_bd.tcl [-tclargs <專案目錄>]
@@ -7,9 +7,9 @@
 # 設計重點：
 #   - 按鈕經過 PL：S6 -> rtl/btn_debounce.v（同步 + 20ms 防彈跳）-> AXI GPIO (axi_gpio_btn,
 #     開 interrupt) -> ip2intc_irpt -> PS7 IRQ_F2P[0] -> GIC（IRQ ID 61），ISR 在 SDK 端。
-#   - 呼吸燈 PWM 在 PL 用 Verilog 做（rtl/pwm_breath.v，FCLK_CLK0 = 50 MHz），
-#     CPU 只透過 M_AXI_GP0 -> AXI Interconnect -> AXI GPIO 寫 1 bit 的 mode
-#     （0 = 恆亮、1 = 2 秒呼吸），PWM 波形全部由硬體產生，CPU 不用一直進中斷。
+#   - 呼吸燈 PWM 在 PL 用 VHDL 做（rtl/breathing_pwm_top.vhd + configurable_counter.vhd，
+#     FCLK_CLK0 = 50 MHz），CPU 只透過 M_AXI_GP0 -> AXI Interconnect -> AXI GPIO 寫 1 bit 的 mode
+#     （0 = 恆亮、1 = 約 3.75 秒呼吸），PWM 波形全部由硬體產生，CPU 不用一直進中斷。
 
 set proj_name  "hw2_led_isr"
 set proj_dir   [expr {$argc > 0 ? [lindex $argv 0] : "./build"}]
@@ -20,15 +20,16 @@ create_project $proj_name $proj_dir -part $part -force
 create_bd_design "system"
 create_bd_cell -type ip -vlnv xilinx.com:ip:processing_system7:5.5 ps7
 
-# PL 端的 Verilog 模組，要先加進專案才能在 BD 裡用 module reference 放進去
+# PL 端的 RTL 模組，要先加進專案才能在 BD 裡用 module reference 放進去
 # （要在 create_bd_design 之後才加：2018.2 在建 BD 之前先 add_files/update_compile_order，
 #   create_bd_design 會報 couldn't read file "addr.tcl"）
-add_files -norecurse [list rtl/pwm_breath.v rtl/btn_debounce.v]
-add_files -fileset sim_1 -norecurse [list rtl/tb_pwm_breath.v rtl/tb_btn_debounce.v]
-set_property top tb_pwm_breath [get_filesets sim_1]
+add_files -norecurse [list rtl/configurable_counter.vhd rtl/breathing_pwm_top.vhd rtl/btn_debounce.v]
+add_files -fileset sim_1 -norecurse [list rtl/tb_breathing_pwm.vhd rtl/tb_btn_debounce.v]
+set_property FILE_TYPE {VHDL 2008} [get_files tb_breathing_pwm.vhd]
+set_property top tb_breathing_pwm [get_filesets sim_1]
 update_compile_order -fileset sources_1
 
-# M_AXI_GP0 + FCLK_CLK0 給 PL 的 AXI GPIO / pwm_breath 用
+# M_AXI_GP0 + FCLK_CLK0 給 PL 的 AXI GPIO / breathing_pwm_top 用
 set_property CONFIG.PCW_USE_M_AXI_GP0 {1} [get_bd_cells ps7]
 set_property CONFIG.PCW_FPGA0_PERIPHERAL_FREQMHZ {50} [get_bd_cells ps7]
 
@@ -80,21 +81,21 @@ connect_bd_net [get_bd_pins btn_debounce_0/btn_out] [get_bd_pins axi_gpio_btn/gp
 create_bd_port -dir I btn
 connect_bd_net [get_bd_ports btn] [get_bd_pins btn_debounce_0/btn_in]
 
-# PL 呼吸燈 PWM（Verilog module reference）
-create_bd_cell -type module -reference pwm_breath pwm_breath_0
-connect_bd_net [get_bd_pins ps7/FCLK_CLK0] [get_bd_pins pwm_breath_0/clk]
+# PL 呼吸燈 PWM（VHDL module reference）
+create_bd_cell -type module -reference breathing_pwm_top breathing_pwm_0
+connect_bd_net [get_bd_pins ps7/FCLK_CLK0] [get_bd_pins breathing_pwm_0/clk]
 connect_bd_net [get_bd_pins [get_bd_cells -filter {VLNV =~ "*proc_sys_reset*"}]/peripheral_aresetn] \
-               [get_bd_pins pwm_breath_0/resetn]
-connect_bd_net [get_bd_pins axi_gpio_mode/gpio_io_o] [get_bd_pins pwm_breath_0/mode]
+               [get_bd_pins breathing_pwm_0/resetn]
+connect_bd_net [get_bd_pins axi_gpio_mode/gpio_io_o] [get_bd_pins breathing_pwm_0/mode]
 
 create_bd_port -dir O led0
-connect_bd_net [get_bd_pins pwm_breath_0/led] [get_bd_ports led0]
+connect_bd_net [get_bd_pins breathing_pwm_0/led_out] [get_bd_ports led0]
 
 regenerate_bd_layout
 validate_bd_design
 save_bd_design
 
-# BD 裡有 module reference（pwm_breath、btn_debounce）時，2018.2 batch 模式不會自動幫各 IP 建 OOC 合成 run，
+# BD 裡有 module reference（breathing_pwm_top、btn_debounce）時，2018.2 batch 模式不會自動幫各 IP 建 OOC 合成 run，
 # synth_1 會報 module 'system_axi_gpio_mode_0' not found；改成 global 合成並明確產生輸出檔
 set_property synth_checkpoint_mode None [get_files system.bd]
 generate_target all [get_files system.bd]

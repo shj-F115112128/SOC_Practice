@@ -1,4 +1,4 @@
-# HW2 - LED0 (PL pwm_breath 輸出) / S6 按鈕 (PL btn_debounce 輸入) 腳位約束
+# HW2 - LED0 (PL breathing_pwm_top 輸出) / S6 按鈕 (PL btn_debounce 輸入) 腳位約束
 # 來源：EGO-XZ7 User Guide V1.2
 #   §2.9.3 User LED：LED0 = T22（Bank33 = 3.3V）
 #   §2.9.1 User Push Buttons：S6 (BTNC) = P16，按下 = 1（同排的 S5/T18 在 project_1 當 active-high rst 用過）

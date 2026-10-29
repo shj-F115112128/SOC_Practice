@@ -16,14 +16,15 @@
 - 輸出：LED0，PL pin T22
 - 行為：
   1. 開機預設 LED0 恆亮。
-  2. 按一下 S6 切換成呼吸燈，週期 2 秒（1 秒漸亮、1 秒漸暗）。
+  2. 按一下 S6 切換成呼吸燈，週期約 3.75 秒（漸亮、漸暗各約 1.9 秒）。
   3. 再按一下切回恆亮，之後每按一次就在兩個狀態間切換。
 
-按鍵偵測用中斷，不用主迴圈 polling；ISR 與中斷設定都直接讀寫暫存器。
+按鍵偵測用中斷，不用主迴圈 polling；Driver 用 BSP 的 `xgpio` / `xscugic` API，
+每個 API 寫到哪個暫存器見[對應到 `main.c`](#對應到-mainc)。
 
 ## Demo
 
-https://github.com/user-attachments/assets/202ba66d-9476-44bd-b6ca-a85f9f2d0ead
+https://github.com/user-attachments/assets/06318f9a-7f46-473f-a88f-b6015196d532
 
 [`demo/`](demo/) 資料夾裡雙擊 `demo.bat`，會依序燒 bitstream、初始化 PS、下載 ELF 並執行，
 詳細步驟見 [`demo/README.md`](demo/README.md)。
@@ -49,9 +50,9 @@ IRQ 61 #4: S6 released, mode = FIXED
 | `ps7_axi_periph` | AXI Interconnect，1 個 master 分給 2 個 slave（`M00_AXI` 接 `axi_gpio_mode`、`M01_AXI` 接 `axi_gpio_btn`） |
 | `rst_ps7_50M` | Processor System Reset，把 PS 的非同步 reset 同步到 50 MHz 時脈再分給 PL |
 | `axi_gpio_btn` | 1 bit 輸入，開 interrupt。`gpio_io_i` 接防彈跳後的按鈕，`ip2intc_irpt` 接 `IRQ_F2P` |
-| `axi_gpio_mode` | 1 bit 輸出，`gpio_io_o` 接 `pwm_breath` 的 `mode` |
+| `axi_gpio_mode` | 1 bit 輸出，`gpio_io_o` 接 `breathing_pwm_0` 的 `mode` |
 | `btn_debounce_0` | 自寫 RTL（[`btn_debounce.v`](vivado/rtl/btn_debounce.v)），同步 + 防彈跳 |
-| `pwm_breath_0` | 自寫 RTL（[`pwm_breath.v`](vivado/rtl/pwm_breath.v)），依 `mode` 輸出恆亮或呼吸 PWM 到 `led0` |
+| `breathing_pwm_0` | 自寫 RTL（[`breathing_pwm_top.vhd`](vivado/rtl/breathing_pwm_top.vhd)），依 `mode` 輸出恆亮或呼吸 PWM 到 `led0` |
 
 `btn` 是單一訊號的 port，不是 GPIO 介面 port：按鈕要先經過 `btn_debounce` 才接到 AXI GPIO，
 所以不能直接把 AXI GPIO 的 GPIO 介面 Make External。
@@ -105,7 +106,7 @@ GIC 端是 `ICDISPR1`：
 ![UG585 p.1523 ICDISPR](Upload/image/ug585/p1523_gic_ICDISPR1.png)
 
 > UG585 p.1523。`ICDISPR0`～`ICDISPR2` 分別管 ID 0～31、32～63、64～95，這裡用 `ICDISPR1` bit29。
-> 讀到 1 表示 pending；清除要寫 `ICDICPR1`（`0xF8F01284`），程式在打開中斷前會先寫一次清掉殘留。
+> 讀到 1 表示 pending；清除要寫 `ICDICPR1`（`0xF8F01284`）。
 
 ### 3. Mask register：port enable
 
@@ -140,24 +141,32 @@ ID 61 在 `ICDICFR3`（ID 48～63，`0xF8F01C0C`）的 bits[27:26]，(61 - 48) *
 
 ## 對應到 `main.c`
 
-[`sdk/src/main.c`](sdk/src/main.c) 的中斷設定都是用 `Xil_In32` / `Xil_Out32` 直接讀寫暫存器：
+[`sdk/src/main.c`](sdk/src/main.c) 用 BSP 的 `xgpio`（AXI GPIO）和 `xscugic`（GIC）driver，
+API 實際讀寫的就是上面找到的暫存器：
 
-| 函式 | 暫存器操作 |
-|---|---|
-| `SetupModeGpio()` | `axi_gpio_mode` 的 `GPIO_TRI` = 0（輸出）、`GPIO_DATA` = 0（恆亮） |
-| `SetupBtnGpio()` | 設成輸入、清掉 `IPISR` 殘留，再開 `IPIER` bit0 和 `GIER` bit31 |
-| `SetupInterruptSystem()` | ID 61 接到 `S6IntrHandler`，`ICDICFR3` 設 level 觸發，清 `ICDICPR1` 後開 `ICDISER1` bit29，最後 `Xil_ExceptionEnable()` |
-| `S6IntrHandler()` | 讀 `IPISR` bit0、寫 1 清除，再讀 `GPIO_DATA`，是 1 才切換 `mode` |
-| `main()` | 初始化完就空轉，LED 切換都由中斷處理 |
+| 步驟 | BSP API | 讀寫的暫存器 |
+|---|---|---|
+| GPIO 初始化 | `XGpio_Initialize`、`XGpio_SetDataDirection` | `GPIO_TRI`：`axi_gpio_mode` = 0（輸出）、`axi_gpio_btn` = 1（輸入） |
+| LED 預設恆亮 | `XGpio_DiscreteWrite(&ModeGpio, 1, 0)` | `axi_gpio_mode` 的 `GPIO_DATA` = 0 |
+| GIC 初始化 | `XScuGic_LookupConfig`、`XScuGic_CfgInitialize` | Distributor 先關掉所有 ID（`ICDICER`），所有 SPI 送 CPU0（`ICDIPTR`），再開 distributor / CPU interface |
+| 觸發方式 | `XScuGic_SetPriorityTriggerType(&Gic, 61, 0xA0, 0x1)` | `ICDIPR` 的 ID 61 那個 byte = `0xA0`，`ICDICFR3` bits[27:26] = `01`（high level） |
+| 1. IRQ # → ISR | `XScuGic_Connect(&Gic, 61, S6IntrHandler, &BtnGpio)` | 不寫暫存器，把 `S6IntrHandler` 填進 BSP 的 `HandlerTable[61]` |
+| 3. mask（GIC） | `XScuGic_Enable(&Gic, 61)` | `ICDISER1` bit29 |
+| 2. pending 清除 | `XGpio_InterruptClear(&BtnGpio, 1)` | `IPISR` bit0，只對讀到 1 的 bit 寫 1 |
+| 3. mask（AXI GPIO） | `XGpio_InterruptEnable`、`XGpio_InterruptGlobalEnable` | `IPIER` bit0、`GIER` bit31 |
+| CPU 收 IRQ | `Xil_ExceptionRegisterHandler`、`Xil_ExceptionEnable` | IRQ 向量指到 `XScuGic_InterruptHandler`，CPSR.I = 0 |
 
-BSP 只留 CPU 收到 IRQ 後的分派：`XScuGic_InterruptHandler` 讀 `ICCIAR` 拿 ID、呼叫 ISR、寫 `ICCEOIR` 結束。
+中斷進來後，`XScuGic_InterruptHandler` 讀 `ICCIAR` 拿到 ID 61，查 `HandlerTable[61]` 呼叫
+`S6IntrHandler`，返回後寫 `ICCEOIR` 結束。`S6IntrHandler` 用 `XGpio_InterruptGetStatus` 讀 `IPISR`、
+`XGpio_InterruptClear` 清除，再用 `XGpio_DiscreteRead` 讀 `GPIO_DATA`，是 1（按下）才用
+`XGpio_DiscreteWrite` 切換 `mode`。`main()` 初始化完只負責把中斷紀錄印到 JTAG UART。
 
 ## PL 端 RTL
 
 | 檔案 | 內容 | 驗證 |
 |---|---|---|
 | [`btn_debounce.v`](vivado/rtl/btn_debounce.v) | 2 級同步器 + 防彈跳，輸入要連續 20ms（50 MHz 下 1,000,000 clk）不變才採用 | [`tb_btn_debounce.v`](vivado/rtl/tb_btn_debounce.v)：按下、放開各彈跳 5 次，輸出只變 2 次 |
-| [`pwm_breath.v`](vivado/rtl/pwm_breath.v) | `mode`=0 恆亮；`mode`=1 為 1 kHz PWM、100 階三角波，每階 10ms，來回 200 階 = 2 秒 | [`tb_pwm_breath.v`](vivado/rtl/tb_pwm_breath.v)：縮小參數逐階檢查亮燈 clk 數 |
+| [`breathing_pwm_top.vhd`](vivado/rtl/breathing_pwm_top.vhd) + [`configurable_counter.vhd`](vivado/rtl/configurable_counter.vhd) | `mode`=0 恆亮；`mode`=1 呼吸。50 MHz 每 12207 clk 產生一個 `tick_4096`（約 4096 Hz）當 clock enable；ST_HIGH / ST_LOW 兩狀態 FSM 搭配兩個計數器，一個 PWM 週期 31 tick，高電位 `duty_reg` tick；每 8 個 PWM 週期 `duty_reg` 加/減 1，0→31→0 共 62 階，約 3.75 秒 | [`tb_breathing_pwm.vhd`](vivado/rtl/tb_breathing_pwm.vhd)：`DIV_N` 縮成 2，走完一整輪，逐階檢查亮燈 clk 數 = `duty_reg`/31，再檢查切回恆亮 |
 
 兩個 testbench 在 xsim 都 PASS。
 
@@ -184,8 +193,8 @@ vivado -mode batch -source create_bd.tcl -tclargs ./build/plbtn   # 建專案 + 
 
 ## 驗證結果
 
-- RTL：`tb_btn_debounce`、`tb_pwm_breath` xsim PASS。
+- RTL：`tb_btn_debounce`、`tb_breathing_pwm` xsim PASS。
 - Vivado：timing met、0 critical warning，`xparameters.h` 的中斷 ID 是 61，跟 UG585 一致。
 - 上板：燒錄、執行成功，debugger 讀到 CPU 停在 `main()` 迴圈、`ICDISER1 = 0x20000000`、
   `ICDICFR3` bits[27:26] = `01`、CPSR.I = 0。
-- 按鈕測試：按 S6 時 JTAG UART 印出 `IRQ 61` 的中斷紀錄，LED0 在恆亮和呼吸燈之間切換（見 Demo 影片）。
+- 按鈕測試：按 S6 時 JTAG UART 印出 `IRQ 61` 的中斷紀錄，LED0 在恆亮和約 3.75 秒的呼吸燈之間切換（見 Demo 影片）。
