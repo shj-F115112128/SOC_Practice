@@ -7,6 +7,7 @@ S6（BTNC）按鈕經過 PL → AXI GPIO 中斷 → GIC（IRQ ID 61）→ ISR �
 1. EGO-XZ7：SW8 全部撥 **ON**（JTAG 開機）、JP1（VADJ）在 **3.3V**、接 JTAG 線、開電源
 2. 雙擊 **`demo.bat`**（燒 bitstream → ps7_init → 下載 ELF → 執行）
 3. LED0 恆亮 → 按 S6 變呼吸燈 → 再按回恆亮
+4. 另外跳出的 JTAG UART 視窗會印 `IRQ 61 #n: S6 pressed/released, mode = ...`
 
 ## 檔案
 

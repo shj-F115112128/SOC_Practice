@@ -23,8 +23,19 @@
 
 ## Demo
 
+https://github.com/user-attachments/assets/202ba66d-9476-44bd-b6ca-a85f9f2d0ead
+
 [`demo/`](demo/) 資料夾裡雙擊 `demo.bat`，會依序燒 bitstream、初始化 PS、下載 ELF 並執行，
 詳細步驟見 [`demo/README.md`](demo/README.md)。
+
+執行後會跳出 JTAG UART 視窗，每次進 ISR 都會印一行（按下、放開各一次，只有按下才切換）：
+
+```
+IRQ 61 #1: S6 pressed , mode = BREATH
+IRQ 61 #2: S6 released, mode = BREATH
+IRQ 61 #3: S6 pressed , mode = FIXED
+IRQ 61 #4: S6 released, mode = FIXED
+```
 
 ## Vivado Block Design
 
@@ -177,3 +188,4 @@ vivado -mode batch -source create_bd.tcl -tclargs ./build/plbtn   # 建專案 + 
 - Vivado：timing met、0 critical warning，`xparameters.h` 的中斷 ID 是 61，跟 UG585 一致。
 - 上板：燒錄、執行成功，debugger 讀到 CPU 停在 `main()` 迴圈、`ICDISER1 = 0x20000000`、
   `ICDICFR3` bits[27:26] = `01`、CPSR.I = 0。
+- 按鈕測試：按 S6 時 JTAG UART 印出 `IRQ 61` 的中斷紀錄，LED0 在恆亮和呼吸燈之間切換（見 Demo 影片）。

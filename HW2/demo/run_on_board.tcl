@@ -15,3 +15,4 @@ targets -set -nocase -filter {name =~ "*A9*#0"}
 dow [file join $here hw2_led_isr.elf]
 con
 puts "DONE: hw2_led_isr.elf running on CPU0. LED0 = fixed on, press S6 (BTNC) to toggle breathing."
+jtagterminal -start

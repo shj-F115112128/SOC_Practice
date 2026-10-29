@@ -8,6 +8,7 @@
 #include "xscugic.h"
 #include "xil_exception.h"
 #include "xil_io.h"
+#include "xil_printf.h"
 #include "xstatus.h"
 
 /* 1. IRQ # */
@@ -51,6 +52,7 @@ static XScuGic  GicInst;
 
 static volatile LedMode g_Mode = LED_MODE_FIXED;
 static volatile u32     g_IntrCount = 0;
+static volatile u32     g_BtnLevel = 0;
 
 static void S6IntrHandler(void *CallBackRef)
 {
@@ -59,10 +61,11 @@ static void S6IntrHandler(void *CallBackRef)
     if (Xil_In32(BTN_GPIO_IPISR) & CH1_INTR) {
         /* toggle-on-write，寫 1 清除；沒清的話會一直重進 ISR */
         Xil_Out32(BTN_GPIO_IPISR, CH1_INTR);
+        g_BtnLevel = Xil_In32(BTN_GPIO_DATA) & 0x1u;
         g_IntrCount++;
 
         /* 按下、放開都會中斷，只在按下時切換 */
-        if (Xil_In32(BTN_GPIO_DATA) & 0x1u) {
+        if (g_BtnLevel) {
             g_Mode = (g_Mode == LED_MODE_FIXED) ? LED_MODE_BREATH : LED_MODE_FIXED;
             Xil_Out32(MODE_GPIO_DATA, (u32)g_Mode);
         }
@@ -133,13 +136,24 @@ static int SetupInterruptSystem(void)
 
 int main(void)
 {
+    u32 Shown = 0;
+
     SetupModeGpio();
     SetupBtnGpio();
     if (SetupInterruptSystem() != XST_SUCCESS) {
         return XST_FAILURE;
     }
 
+    /* 輸出走 JTAG UART，沒人讀時會卡住，所以不在 ISR 裡印 */
+    xil_printf("HW2 ready: LED0 = FIXED, press S6\r\n");
+
     while (1) {
+        if (g_IntrCount != Shown) {
+            Shown = g_IntrCount;
+            xil_printf("IRQ %d #%d: S6 %s, mode = %s\r\n", (int)BTN_IRQ_ID, (int)Shown,
+                       g_BtnLevel ? "pressed " : "released",
+                       (g_Mode == LED_MODE_BREATH) ? "BREATH" : "FIXED");
+        }
     }
 
     return XST_SUCCESS;
