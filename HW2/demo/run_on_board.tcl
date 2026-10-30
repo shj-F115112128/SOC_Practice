@@ -1,6 +1,9 @@
 # 上板：燒 bitstream -> ps7_init -> 下載 ELF -> 執行
-# 用法：雙擊 demo.bat（或 xsct run_on_board.tcl）；板子 SW8 全 ON = JTAG 開機
+# 用法：雙擊 demo.bat（版本一）或 demo_ip.bat（IP 封裝版，檔案在 ip/）；板子 SW8 全 ON = JTAG 開機
+#      xsct run_on_board.tcl [子資料夾]
 set here [file dirname [file normalize [info script]]]
+if {$argc > 0} { set here [file join $here [lindex $argv 0]] }
+set elf  [lindex [glob -directory $here *.elf] 0]
 connect
 targets -set -nocase -filter {name =~ "APU*"}
 rst -system
@@ -12,7 +15,7 @@ source [file join $here ps7_init.tcl]
 ps7_init
 ps7_post_config
 targets -set -nocase -filter {name =~ "*A9*#0"}
-dow [file join $here hw2_led_isr.elf]
+dow $elf
 con
-puts "DONE: hw2_led_isr.elf running on CPU0. LED0 = fixed on, press S6 (BTNC) to toggle breathing."
+puts "DONE: [file tail $elf] running on CPU0. LED0 = fixed on, press S6 (BTNC) to toggle breathing."
 jtagterminal -start
