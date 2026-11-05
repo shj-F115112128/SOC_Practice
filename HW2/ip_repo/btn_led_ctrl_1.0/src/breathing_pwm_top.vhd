@@ -2,19 +2,18 @@ library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
 use IEEE.NUMERIC_STD.ALL;
 
--- HW2 LED0 呼吸燈：mode = 0 恆亮，mode = 1 呼吸
--- 全部邏輯都跑在 FCLK_CLK0（50 MHz），用每 DIV_N 個 clk 一次的 tick_4096 當 clock enable，
--- 不另外產生時脈，mode（AXI GPIO 輸出）跟這裡同一個時脈域，不用同步器。
--- 50 MHz / 12207 ≈ 4096.0 Hz；PWM 一個週期 31 tick（約 132 Hz），每 8 個 PWM 週期 duty 加/減 1，
--- 0 -> 31 -> 0 共 62 階，呼吸一次約 3.75 秒。
+-- HW2 LED0 呼吸燈（btn_led_ctrl IP 版）：mode = 0 恆亮，mode = 1 呼吸
+-- 跟 vivado/rtl/breathing_pwm_top.vhd 的差別：除頻值 DIV_N 從 generic 改成 div_n 輸入，
+-- CPU 寫 SPEED 暫存器就能即時改呼吸速度。
+-- 全部邏輯都跑在 FCLK_CLK0（50 MHz），用每 div_n 個 clk 一次的 tick_4096 當 clock enable。
+-- div_n = 12207：50 MHz / 12207 ≈ 4096.0 Hz；PWM 一個週期 31 tick（約 132 Hz），每 8 個 PWM 週期 duty 加/減 1，
+-- 0 -> 31 -> 0 共 62 階，呼吸一次約 3.75 秒；div_n 減半，週期也減半。
 entity breathing_pwm_top is
-    generic (
-        DIV_N : integer := 12207    -- 硬體用 12207（~4096 Hz），模擬用 2
-    );
     port (
         clk     : in  std_logic;                       -- FCLK_CLK0，50 MHz
-        resetn  : in  std_logic;                       -- rst_ps7_50M/peripheral_aresetn
-        mode    : in  std_logic_vector(0 downto 0);    -- axi_gpio_mode/gpio_io_o
+        resetn  : in  std_logic;                       -- S_AXI_ARESETN
+        mode    : in  std_logic_vector(0 downto 0);    -- CTRL bit0
+        div_n   : in  std_logic_vector(15 downto 0);   -- 除頻值，12207 = 3.75 秒
         led_out : out std_logic                        -- LED0（T22）
     );
 end entity;
@@ -47,7 +46,8 @@ architecture Behavioral of breathing_pwm_top is
     signal clr : std_logic;    -- reset 或恆亮模式：呼吸電路全部停在初始狀態
 
     -- ===== 50 MHz -> 約 4096 Hz 的 clock enable =====
-    signal div_cnt   : integer range 0 to DIV_N - 1 := 0;
+    signal div_cnt   : integer range 0 to 65535 := 0;
+    signal div_max   : integer range 0 to 65535;
     signal tick_4096 : std_logic;
 
 begin
@@ -55,10 +55,13 @@ begin
     rst <= not resetn;
     clr <= rst or not mode(0);
 
+    div_max <= to_integer(unsigned(div_n)) - 1 when unsigned(div_n) /= 0 else 0;
+
+    -- 用 >= 而不是 =：CPU 把 div_n 改小時，div_cnt 已經超過新上限也能馬上歸零
     process(clk)
     begin
         if rising_edge(clk) then
-            if rst = '1' or div_cnt = DIV_N - 1 then
+            if rst = '1' or div_cnt >= div_max then
                 div_cnt <= 0;
             else
                 div_cnt <= div_cnt + 1;
@@ -66,7 +69,7 @@ begin
         end if;
     end process;
 
-    tick_4096 <= '1' when div_cnt = DIV_N - 1 else '0';
+    tick_4096 <= '1' when div_cnt >= div_max else '0';
 
     -- 動態分配上限
     limit_high <= duty_reg;

@@ -7,8 +7,10 @@ S6（BTNC）按鈕經過 PL → 中斷 → GIC（IRQ ID 61）→ ISR 切換 LED0
 
 1. EGO-XZ7：SW8 全部撥 **ON**（JTAG 開機）、JP1（VADJ）在 **3.3V**、接 JTAG 線、開電源
 2. 雙擊 **`demo.bat`** 或 **`demo_ip.bat`**（燒 bitstream → ps7_init → 下載 ELF → 執行）
-3. LED0 恆亮 → 按 S6 變呼吸燈 → 再按回恆亮
-4. 另外跳出的 JTAG UART 視窗會印 `IRQ 61 #n: S6 pressed/released, mode = ...`
+3. 版本一：LED0 恆亮 → 按 S6 變呼吸燈 → 再按回恆亮
+4. 版本二：單擊切換恆亮 / 呼吸，雙擊讓恆亮變暗（31 → 8 → 2 → 31），長按 1 秒讓呼吸變快（3.75 s → 1.9 s → 0.94 s → 0.47 s）
+5. 另外跳出的 JTAG UART 視窗會印每次中斷的紀錄：版本一 `IRQ 61 #n: S6 pressed/released, mode = ...`；
+   版本二 `IRQ 61 #n: PRESS / RELEASE(held … ms) / CLICK / DOUBLE / LONG ... | DATA_OUT = ...`
 
 ## 檔案
 
