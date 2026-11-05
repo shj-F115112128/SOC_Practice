@@ -171,13 +171,13 @@ IRQ 61 #10: RELEASE(held 88 ms) DOUBLE -> bright = 8/31  | DATA_OUT = 1010 (DATA
 
 ```
 版本一：S6 → btn_debounce → axi_gpio_btn (IPISR/IPIER/GIER) → IRQ_F2P[0]
-版本二：S6 → btn_led_ctrl (INT_STATUS/INT_ENABLE)              → IRQ_F2P[0]
+版本二：S6 → btn_led_ctrl (INT_STATUS/INT_ENABLE bit[4:0]，五種中斷 OR 成一條 irq) → IRQ_F2P[0]
         → GIC (ID 61: ICDISPR1/ICDISER1 bit29) → CPU (CPSR.I) → ISR
 ```
 
 | 項目 | 版本一 PL：`axi_gpio_btn`（基底 `0x41210000`，PG144） | 版本二 PL：`btn_led_ctrl`（基底 `0x43C00000`） | GIC（UG585） |
 |---|---|---|---|
-| 1. IRQ #：port | GPIO 通道 1 bit0 → `ip2intc_irpt` → `IRQ_F2P[0]` | `irq` → `IRQ_F2P[0]` | **IRQ ID 61**，p.238 Table 7-4 |
+| 1. IRQ #：port | GPIO 通道 1 bit0 → `ip2intc_irpt` → `IRQ_F2P[0]` | 按下 / 放開 / 單擊 / 雙擊 / 長按五種中斷 → `irq` → `IRQ_F2P[0]` | **IRQ ID 61**，p.238 Table 7-4 |
 | 2. pending：port status | `IPISR` bit0（`0x41210120`） | `INT_STATUS` bit[4:0]（`0x43C00008`） | `ICDISPR1` **bit29**（`0xF8F01204`），p.1523 |
 | 3. mask：port enable | `IPIER` bit0（`0x41210128`）+ `GIER` bit31（`0x4121011C`） | `INT_ENABLE` bit[4:0]（`0x43C0000C`） | `ICDISER1` **bit29**（`0xF8F01104`），p.1520 |
 
@@ -191,6 +191,20 @@ UG585 p.238 Table 7-4 最下面 PL [2:0] 那一列：`IRQF2P[2:0]` 對應 IRQ ID
 所以從 `IRQ_F2P[0]` 進來的就是 ID 61，Status Bits 是 `spi_status_0[31:29]`，同樣落在 bit29。
 Vivado 產生的 `xparameters.h` 裡 `XPAR_FABRIC_AXI_GPIO_BTN_IP2INTC_IRPT_INTR`（版本一）、
 `XPAR_FABRIC_BTN_LED_CTRL_0_IRQ_INTR`（版本二）也都是 61U。
+
+版本二的五種中斷共用同一條 `irq`，所以在 GIC 看來都是 ID 61，只會進同一個 ISR（`BtnIntrHandler`）。
+要分辨是哪一種，ISR 讀 IP 的 `INT_STATUS`：
+
+| `INT_STATUS` bit | 中斷 | 什麼時候發 |
+|---|---|---|
+| bit0 | 按下 | 防彈跳後的電位 0 → 1 |
+| bit1 | 放開 | 防彈跳後的電位 1 → 0 |
+| bit2 | 單擊 | 放開後 300 ms 內沒有再按 |
+| bit3 | 雙擊 | 第二次放開（跟放開同一拍，所以會跟 bit1 一起出現） |
+| bit4 | 長按 | 按住滿 1000 ms（還沒放開） |
+
+要多個中斷來源各自佔一個 GIC ID 的話，可以把 `IRQ_F2P` 開到多 bit（最多 16 條，ID 61～68、84～91），
+IP 拉出多條 `irq`；這裡用一條 irq + IP 內部的狀態暫存器，跟 AXI GPIO 的 `ip2intc_irpt` + `IPISR` 是同樣的做法。
 
 ### 2. Pending register：port status
 
@@ -239,6 +253,16 @@ ID 61 在 `ICDICFR3`（ID 48～63，`0xF8F01C0C`）的 bits[27:26]，(61 - 48) *
 
 另外 AXI GPIO 是輸入有變化就中斷，按下和放開各會進一次 ISR。ISR 清完 `IPISR` 後讀 `GPIO_DATA`，
 是 1（按下）才切換模式。彈跳已經在 PL 的 `btn_debounce` 濾掉，所以一次按壓只會有這兩次中斷。
+
+版本二每個手勢會進 ISR 的次數（五種中斷全開時）：
+
+| 手勢 | 依序發生的中斷 | 進 ISR 次數 |
+|---|---|---|
+| 單擊 | 按下 → 放開 → 單擊（放開後 300 ms） | 3 |
+| 雙擊 | 按下 → 放開 → 按下 → 放開 + 雙擊（同一拍） | 4 |
+| 長按 | 按下 → 長按（按住 1000 ms） → 放開 | 3 |
+
+ISR 一次可能讀到好幾個 bit（例如放開 + 雙擊），所以是讀到哪些 bit 就整個寫回去清除，不是固定只清 bit0。
 
 ## 對應到 `main.c`
 

@@ -5,7 +5,8 @@
 #   專案目錄預設 ./build/ipw；create_project -force 會清空該目錄
 #
 # 跟 create_bd.tcl 的差別：btn_debounce_0、axi_gpio_btn、axi_gpio_mode、breathing_pwm_0 四個方塊
-# 包成一顆 btn_led_ctrl。CPU 經 M_AXI_GP0 讀寫它的 4 個暫存器（0x43C00000），它的 irq 接 IRQ_F2P[0]（IRQ ID 61）。
+# 包成一顆 btn_led_ctrl。CPU 經 M_AXI_GP0 讀寫它的暫存器（0x43C00000，用到 0x00～0x24），
+# 它的 irq（五種中斷 OR 在一起）接 IRQ_F2P[0]（IRQ ID 61）。
 
 set here       [file dirname [file normalize [info script]]]
 set proj_name  "hw2_ipw"
