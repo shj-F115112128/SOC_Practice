@@ -62,7 +62,9 @@ set_property top system_wrapper [current_fileset]
 add_files -fileset constrs_1 -norecurse constraints/hw2.xdc
 
 # 模擬：IP 的 testbench
-add_files -fileset sim_1 -norecurse rtl/tb_btn_led_ctrl.v
+set ip_dir [file normalize $here/../ip_repo/btn_led_ctrl_1.0]
+add_files -fileset sim_1 -norecurse [list $ip_dir/src/btn_debounce.vhd $ip_dir/src/configurable_counter.vhd $ip_dir/src/breathing_pwm_top.vhd $ip_dir/hdl/btn_led_ctrl_v1_0_S00_AXI.vhd rtl/tb_btn_led_ctrl.vhd]
+set_property FILE_TYPE {VHDL 2008} [get_files tb_btn_led_ctrl.vhd]
 set_property top tb_btn_led_ctrl [get_filesets sim_1]
 
 puts "Block design 建立完成。接下來：Generate Bitstream -> Export Hardware (含 bitstream) -> SDK 編譯 sdk/src_ip/main.c"

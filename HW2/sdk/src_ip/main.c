@@ -18,7 +18,7 @@
 #include "xil_printf.h"
 #include "xstatus.h"
 
-/* btn_led_ctrl 的暫存器（offset 見 ip_repo/btn_led_ctrl_1.0/hdl/btn_led_ctrl_v1_0_S00_AXI.v） */
+/* btn_led_ctrl 的暫存器（offset 見 ip_repo/btn_led_ctrl_1.0/hdl/btn_led_ctrl_v1_0_S00_AXI.vhd） */
 #define IP_BASE             XPAR_BTN_LED_CTRL_0_S00_AXI_BASEADDR    /* 0x43C00000 */
 #define REG_CTRL            (IP_BASE + 0x00u)   /* bit0 mode：0 恆亮、1 呼吸 */
 #define REG_STATUS          (IP_BASE + 0x04u)   /* bit0 防彈跳後的按鈕電位（唯讀） */

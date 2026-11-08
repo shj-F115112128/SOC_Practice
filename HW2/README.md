@@ -89,7 +89,7 @@ IRQ 61 #10: RELEASE(held 88 ms) DOUBLE -> bright = 8/31  | DATA_OUT = 1010 (DATA
 | `rst_ps7_50M` | Processor System Reset，把 PS 的非同步 reset 同步到 50 MHz 時脈再分給 PL |
 | `axi_gpio_btn` | 1 bit 輸入，開 interrupt。`gpio_io_i` 接防彈跳後的按鈕，`ip2intc_irpt` 接 `IRQ_F2P` |
 | `axi_gpio_mode` | 1 bit 輸出，`gpio_io_o` 接 `breathing_pwm_0` 的 `mode` |
-| `btn_debounce_0` | 自寫 RTL（[`btn_debounce.v`](vivado/rtl/btn_debounce.v)），同步 + 防彈跳 |
+| `btn_debounce_0` | 自寫 RTL（[`btn_debounce.vhd`](vivado/rtl/btn_debounce.vhd)），同步 + 防彈跳 |
 | `breathing_pwm_0` | 自寫 RTL（[`breathing_pwm_top.vhd`](vivado/rtl/breathing_pwm_top.vhd)），依 `mode` 輸出恆亮或呼吸 PWM 到 `led0` |
 
 `btn` 是單一訊號的 port，不是 GPIO 介面 port：按鈕要先經過 `btn_debounce` 才接到 AXI GPIO，
@@ -113,11 +113,11 @@ IRQ 61 #10: RELEASE(held 88 ms) DOUBLE -> bright = 8/31  | DATA_OUT = 1010 (DATA
 | `rst_ps7_50M` | 同版本一 |
 | `btn_led_ctrl_0` | 自製 AXI4-Lite IP（[`ip_repo/btn_led_ctrl_1.0`](ip_repo/btn_led_ctrl_1.0)），位址 `0x43C00000`。`btn` 接 S6、`led0` 接 LED0、`irq` 接 `IRQ_F2P[0]` |
 
-四個方塊在 IP 裡的對應（[`btn_led_ctrl_v1_0_S00_AXI.v`](ip_repo/btn_led_ctrl_1.0/hdl/btn_led_ctrl_v1_0_S00_AXI.v)）：
+四個方塊在 IP 裡的對應（[`btn_led_ctrl_v1_0_S00_AXI.vhd`](ip_repo/btn_led_ctrl_1.0/hdl/btn_led_ctrl_v1_0_S00_AXI.vhd)）：
 
 | 原本的方塊 | 在 IP 裡變成 |
 |---|---|
-| `btn_debounce_0` | `u_btn_debounce`，同一份 [`btn_debounce.v`](vivado/rtl/btn_debounce.v) |
+| `btn_debounce_0` | `u_btn_debounce`，同一份 [`btn_debounce.vhd`](vivado/rtl/btn_debounce.vhd) |
 | `breathing_pwm_0` | `u_breathing_pwm`，[`breathing_pwm_top.vhd`](ip_repo/btn_led_ctrl_1.0/src/breathing_pwm_top.vhd) + [`configurable_counter.vhd`](vivado/rtl/configurable_counter.vhd)。IP 這份的除頻值從 generic `DIV_N` 改成 `div_n` 輸入，接 `SPEED` 暫存器 |
 | `axi_gpio_mode`（`GPIO_DATA` → `mode`） | `CTRL`（`slv_reg0`）bit0 直接接 `mode` |
 | `axi_gpio_btn`（`GPIO_DATA`、`IPISR`、`IPIER`、`GIER`、`ip2intc_irpt`） | `STATUS`、`INT_STATUS`、`INT_ENABLE` 三個暫存器 + `irq` |
@@ -314,11 +314,11 @@ API 實際讀寫的就是上面找到的暫存器：
 
 | 檔案 | 內容 | 驗證 |
 |---|---|---|
-| [`btn_debounce.v`](vivado/rtl/btn_debounce.v) | 2 級同步器 + 防彈跳，輸入要連續 20ms（50 MHz 下 1,000,000 clk）不變才採用 | [`tb_btn_debounce.v`](vivado/rtl/tb_btn_debounce.v)：按下、放開各彈跳 5 次，輸出只變 2 次 |
+| [`btn_debounce.vhd`](vivado/rtl/btn_debounce.vhd) | 2 級同步器 + 防彈跳，輸入要連續 20ms（50 MHz 下 1,000,000 clk）不變才採用 | [`tb_btn_debounce.vhd`](vivado/rtl/tb_btn_debounce.vhd)：按下、放開各彈跳 5 次，輸出只變 2 次 |
 | [`breathing_pwm_top.vhd`](vivado/rtl/breathing_pwm_top.vhd) + [`configurable_counter.vhd`](vivado/rtl/configurable_counter.vhd) | `mode`=0 恆亮；`mode`=1 呼吸。50 MHz 每 12207 clk 產生一個 `tick_4096`（約 4096 Hz）當 clock enable；ST_HIGH / ST_LOW 兩狀態 FSM 搭配兩個計數器，一個 PWM 週期 31 tick，高電位 `duty_reg` tick；每 8 個 PWM 週期 `duty_reg` 加/減 1，0→31→0 共 62 階，約 3.75 秒 | [`tb_breathing_pwm.vhd`](vivado/rtl/tb_breathing_pwm.vhd)：`DIV_N` 縮成 2，走完一整輪，逐階檢查亮燈 clk 數 = `duty_reg`/31，再檢查切回恆亮 |
-| [`btn_led_ctrl_v1_0.v`](ip_repo/btn_led_ctrl_1.0/hdl/btn_led_ctrl_v1_0.v) + [`btn_led_ctrl_v1_0_S00_AXI.v`](ip_repo/btn_led_ctrl_1.0/hdl/btn_led_ctrl_v1_0_S00_AXI.v)（版本二） | Vivado AXI4 peripheral 範本（AXI4-Lite slave）擴成 16 個暫存器（`C_S_AXI_ADDR_WIDTH` = 6），加上 `btn` / `led0` / `irq` 三個 port、1 ms 時基、手勢判斷 FSM、五種中斷的 W1C 與遮罩、`DATA_OUT` / `EVENT_CNT` / `HOLD_MS`、恆亮亮度 PWM，內部 instantiate `btn_debounce` 和 `breathing_pwm_top` | [`tb_btn_led_ctrl.v`](vivado/rtl/tb_btn_led_ctrl.v)：用 AXI4-Lite 讀寫，defparam 把時間縮小。檢查重置值；單擊（按下 + 放開 + 單擊）；雙擊（不會再出現單擊）；長按（按住時就觸發、放開後沒有單擊）；`HOLD_MS` 範圍；`DATA_OUT` = `DATA_IN` + `EVENT_CNT`、唯讀；各中斷分開遮罩；部分 W1C、寫 0 不清；`WSTRB` = 0 不寫入；`SPEED` 加快呼吸；`BRIGHT` 0 / 8 / 31 的亮燈比例 |
+| [`btn_led_ctrl_v1_0.vhd`](ip_repo/btn_led_ctrl_1.0/hdl/btn_led_ctrl_v1_0.vhd) + [`btn_led_ctrl_v1_0_S00_AXI.vhd`](ip_repo/btn_led_ctrl_1.0/hdl/btn_led_ctrl_v1_0_S00_AXI.vhd)（版本二） | Vivado AXI4 peripheral 範本（AXI4-Lite slave）擴成 16 個暫存器（`C_S_AXI_ADDR_WIDTH` = 6），加上 `btn` / `led0` / `irq` 三個 port、1 ms 時基、手勢判斷 FSM、五種中斷的 W1C 與遮罩、`DATA_OUT` / `EVENT_CNT` / `HOLD_MS`、恆亮亮度 PWM，內部 instantiate `btn_debounce` 和 `breathing_pwm_top` | [`tb_btn_led_ctrl.vhd`](vivado/rtl/tb_btn_led_ctrl.vhd)：直接接 `btn_led_ctrl_v1_0_S00_AXI`，用 AXI4-Lite 讀寫，以 generic 把時間縮小。檢查重置值；單擊（按下 + 放開 + 單擊）；雙擊（不會再出現單擊）；長按（按住時就觸發、放開後沒有單擊）；`HOLD_MS` 範圍；`DATA_OUT` = `DATA_IN` + `EVENT_CNT`、唯讀；各中斷分開遮罩；部分 W1C、寫 0 不清；`WSTRB` = 0 不寫入；`SPEED` 加快呼吸；`BRIGHT` 0 / 8 / 31 的亮燈比例 |
 
-三個 testbench 在 xsim 都 PASS。IP 資料夾 `src/` 裡的 `btn_debounce.v`、`configurable_counter.vhd` 是 `vivado/rtl/` 的複本
+三個 testbench 在 xsim 都 PASS。IP 資料夾 `src/` 裡的 `btn_debounce.vhd`、`configurable_counter.vhd` 是 `vivado/rtl/` 的複本
 （打包時勾 Copy sources into IP Directory）；`breathing_pwm_top.vhd` 多了 `div_n` 輸入，所以 IP 裡那份跟版本一的不一樣。
 
 ## 板上按鈕與 LED（EGO-XZ7 User Guide V1.2, §2.9）
@@ -359,15 +359,14 @@ CPU 存取 `0x43C00000` 沒有 slave 回應，匯流排卡住，下載 ELF 時�
 
 從頭打包的步驟（Vivado GUI）：
 
-1. Tools → Create and Package New IP → **Create a new AXI4 peripheral**。名稱 `btn_led_ctrl`，介面 `S00_AXI`：
+1. 專案 Target language 設成 VHDL，Tools → Create and Package New IP → **Create a new AXI4 peripheral**。名稱 `btn_led_ctrl`，介面 `S00_AXI`：
    Lite、Slave、32-bit、16 個暫存器（目前的版本是從 4 個擴充的：`C_S_AXI_ADDR_WIDTH` 改 6、`OPT_MEM_ADDR_BITS` 改 3，
    寫入 / 讀取的 `case` 改成 4 bit）。
-2. Edit IP，在 `btn_led_ctrl_v1_0_S00_AXI.v` 和 `btn_led_ctrl_v1_0.v` 的 `Users to add ports here` 加 `btn` / `led0` / `irq`；
+2. Edit IP，在 `btn_led_ctrl_v1_0_S00_AXI.vhd` 和 `btn_led_ctrl_v1_0.vhd` 的 `Users to add ports here` 加 `btn` / `led0` / `irq`；
    在 `Add user logic here` 加時基、手勢 FSM、W1C、`irq`、亮度 PWM 和兩個子模組；讀取 mux 的 `0x04` / `0x08` /
    `0x14`～`0x1C` 改成回傳 `STATUS` / `INT_STATUS` / `DATA_OUT` / `EVENT_CNT` / `HOLD_MS`。
-3. Add Sources 加入 `btn_debounce.v`、`breathing_pwm_top.vhd`、`configurable_counter.vhd`（勾 Copy sources into IP Directory）。
-4. Package IP → File Groups → Merge changes。範本的 file group 是 Verilog 專用（`xilinx_verilogsynthesis`），
-   放 VHDL 會出現 `CRITICAL WARNING [IP_Flow 19-625]`，要改成 `xilinx_anylanguagesynthesis` /
+3. Add Sources 加入 `btn_debounce.vhd`、`breathing_pwm_top.vhd`、`configurable_counter.vhd`（勾 Copy sources into IP Directory）。
+4. Package IP → File Groups → Merge changes。file group 使用 `xilinx_anylanguagesynthesis` /
    `xilinx_anylanguagebehavioralsimulation`。
 5. Ports and Interfaces 確認 `irq` 被認成 `interrupt` 介面（SENSITIVITY = LEVEL_HIGH），Re-Package IP。
 
@@ -381,6 +380,6 @@ CPU 存取 `0x43C00000` 沒有 slave 回應，匯流排卡住，下載 ELF 時�
   `ICDICFR3` bits[27:26] = `01`、CPSR.I = 0。
 - 按鈕測試：按 S6 時 JTAG UART 印出 `IRQ 61` 的中斷紀錄，LED0 在恆亮和約 3.75 秒的呼吸燈之間切換（見 Demo 影片）。
 - 版本二：`tb_btn_led_ctrl` xsim PASS；BD validate 通過，`btn_led_ctrl_0` 位址 `0x43C00000`；timing met
-  （WNS 13.039 ns、WHS 0.010 ns），用 666 個 LUT（1.3%）；`xparameters.h` 的中斷 ID 是 61。
+  （WNS 13.060 ns、WHS 0.055 ns），用 666 個 LUT（1.3%）；`xparameters.h` 的中斷 ID 是 61。
   上板（`demo_ip.bat`）：單擊切換恆亮 / 呼吸、雙擊恆亮亮度變暗、長按呼吸速度依序變快，
   JTAG UART 印出每個中斷的種類、`HOLD_MS` 和 `DATA_OUT` = 1000 + `EVENT_CNT`。

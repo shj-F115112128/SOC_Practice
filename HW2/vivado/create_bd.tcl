@@ -5,7 +5,7 @@
 #   專案目錄預設 ./build；create_project -force 會清空該目錄，不要指到 SDK workspace 所在的資料夾
 #
 # 設計重點：
-#   - 按鈕經過 PL：S6 -> rtl/btn_debounce.v（同步 + 20ms 防彈跳）-> AXI GPIO (axi_gpio_btn,
+#   - 按鈕經過 PL：S6 -> rtl/btn_debounce.vhd（同步 + 20ms 防彈跳）-> AXI GPIO (axi_gpio_btn,
 #     開 interrupt) -> ip2intc_irpt -> PS7 IRQ_F2P[0] -> GIC（IRQ ID 61），ISR 在 SDK 端。
 #   - 呼吸燈 PWM 在 PL 用 VHDL 做（rtl/breathing_pwm_top.vhd + configurable_counter.vhd，
 #     FCLK_CLK0 = 50 MHz），CPU 只透過 M_AXI_GP0 -> AXI Interconnect -> AXI GPIO 寫 1 bit 的 mode
@@ -23,9 +23,9 @@ create_bd_cell -type ip -vlnv xilinx.com:ip:processing_system7:5.5 ps7
 # PL 端的 RTL 模組，要先加進專案才能在 BD 裡用 module reference 放進去
 # （要在 create_bd_design 之後才加：2018.2 在建 BD 之前先 add_files/update_compile_order，
 #   create_bd_design 會報 couldn't read file "addr.tcl"）
-add_files -norecurse [list rtl/configurable_counter.vhd rtl/breathing_pwm_top.vhd rtl/btn_debounce.v]
-add_files -fileset sim_1 -norecurse [list rtl/tb_breathing_pwm.vhd rtl/tb_btn_debounce.v]
-set_property FILE_TYPE {VHDL 2008} [get_files tb_breathing_pwm.vhd]
+add_files -norecurse [list rtl/configurable_counter.vhd rtl/breathing_pwm_top.vhd rtl/btn_debounce.vhd]
+add_files -fileset sim_1 -norecurse [list rtl/tb_breathing_pwm.vhd rtl/tb_btn_debounce.vhd]
+set_property FILE_TYPE {VHDL 2008} [get_files {tb_breathing_pwm.vhd tb_btn_debounce.vhd}]
 set_property top tb_breathing_pwm [get_filesets sim_1]
 update_compile_order -fileset sources_1
 
@@ -71,7 +71,7 @@ apply_bd_automation -rule xilinx.com:bd_rule:axi4 \
 
 connect_bd_net [get_bd_pins axi_gpio_btn/ip2intc_irpt] [get_bd_pins ps7/IRQ_F2P]
 
-# PL 按鈕同步 + 防彈跳（Verilog module reference）
+# PL 按鈕同步 + 防彈跳（VHDL module reference）
 create_bd_cell -type module -reference btn_debounce btn_debounce_0
 connect_bd_net [get_bd_pins ps7/FCLK_CLK0] [get_bd_pins btn_debounce_0/clk]
 connect_bd_net [get_bd_pins [get_bd_cells -filter {VLNV =~ "*proc_sys_reset*"}]/peripheral_aresetn] \
