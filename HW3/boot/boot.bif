@@ -1,0 +1,8 @@
+// BOOT.BIN = FSBL + PL bitstream + U-Boot
+// bootgen -image boot.bif -arch zynq -o ../sd/BOOT.BIN -w on
+the_ROM_image:
+{
+    [bootloader] fsbl/executable.elf
+    hw/system_wrapper.bit
+    prebuilt/u-boot.elf
+}

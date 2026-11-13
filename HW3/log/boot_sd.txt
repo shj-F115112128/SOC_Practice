@@ -1,0 +1,345 @@
+# EGO-XZ7 SD 卡冷開機紀錄（2026-11-13，COM4 115200 8N1）
+# 開機：SW8 = SD 模式，電源關再開；U-Boot 倒數時按鍵進 console，打 run boot_ego
+U-Boot 2017.01 (Apr 17 2019 - 12:55:19 +0300)
+Model: Zynq Zybo Z7 Development Board
+Board: Xilinx Zynq
+I2C:   ready
+DRAM:  ECC disabled 1 GiB
+MMC:   sdhci@e0100000: 0 (SD)
+Using default environment
+In:    serial
+Out:   serial
+Err:   serial
+Net:   ZYNQ GEM: e000b000, phyaddr 1, interface rgmii-id
+SF: Detected n25q256a with page size 256 Bytes, erase size 4 KiB, total 32 MiB
+Warning: ethernet@e000b000 (eth0) using random MAC address - 36:c7:49:3e:11:ce
+eth0: ethernet@e000b000
+U-BOOT for Zybo Z7
+reading uEnv.txt
+456 bytes read in 9 ms (48.8 KiB/s)
+Importing environment from SD ...
+ethernet@e000b000 Waiting for PHY auto negotiation to complete......... TIMEOUT !
+Hit any key to stop autoboot:  4  0 
+Zynq> 
+version
+U-Boot 2017.01 (Apr 17 2019 - 12:55:19 +0300)
+arm-xilinx-linux-gnueabi-gcc (Linaro GCC 6.2-2016.11) 6.2.1 20161016
+GNU ld (GNU Binutils) 2.27.0.20160806
+Zynq> mmc info
+Device: sdhci@e0100000
+Manufacturer ID: 1d
+OEM: 4144
+Name: USDTran Speed: 50000000
+Rd Block Len: 512
+SD version 3.0
+High Capacity: Yes
+Capacity: 119 GiB
+Bus Width: 4-bit
+Erase Group Size: 512 Bytes
+Zynq> fatls mmc 0
+            system volume information/
+  4577560   boot.bin 
+ 55420632   image.ub 
+ 55384200   zimage 
+    11275   ego.dtb 
+    30915   zybo.dtb 
+      456   uenv.txt 
+6 file(s), 1 dir(s)
+Zynq> printenv boot_ego
+boot_ego=echo [boot_ego] image.ub + ego.dtb; fatload mmc 0 0x10000000 image.ub && fatload mmc 0 0x1F000000 ego.dtb && bootm 0x10000000:kernel@0 0x10000000:ramdisk@0 0x1F000000
+Zynq> 
+run boot_ego
+[boot_ego] image.ub + ego.dtb
+reading image.ub
+55420632 bytes read in 4655 ms (11.4 MiB/s)
+reading ego.dtb
+11275 bytes read in 14 ms (786.1 KiB/s)
+## Loading kernel from FIT Image at 10000000 ...
+   Trying 'kernel@0' kernel subimage
+     Description:  Linux Kernel
+     Type:         Kernel Image
+     Compression:  uncompressed
+     Data Start:   0x100000d4
+     Data Size:    3878632 Bytes = 3.7 MiB
+     Architecture: ARM
+     OS:           Linux
+     Load Address: 0x00008000
+     Entry Point:  0x00008000
+     Hash algo:    sha1
+     Hash value:   68dd91ea0998669a8030a20a0f676eb7f9b2ec2a
+   Verifying Hash Integrity ... sha1+ OK
+## Loading ramdisk from FIT Image at 10000000 ...
+   Trying 'ramdisk@0' ramdisk subimage
+     Description:  ramdisk
+     Type:         RAMDisk Image
+     Compression:  uncompressed
+     Data Start:   0x103baa24
+     Data Size:    51509441 Bytes = 49.1 MiB
+     Architecture: ARM
+     OS:           Linux
+     Load Address: unavailable
+     Entry Point:  unavailable
+     Hash algo:    sha1
+     Hash value:   34847f964eac6c739a218bf6bee1dd893509a778
+   Verifying Hash Integrity ... sha1+ OK
+## Flattened Device Tree blob at 1f000000
+   Booting using the fdt blob at 0x1f000000
+   Loading Kernel Image ... OK
+   Loading Ramdisk to 04ee0000, end 07fff8c1 ... OK
+   Loading Device Tree to 04eda000, end 04edfc0a ... OK
+Starting kernel ...
+Uncompressing Linux... done, booting the kernel.
+Booting Linux on physical CPU 0x0
+Linux version 4.9.0-xilinx-v2017.4 (digilent@osboxes) (gcc version 6.2.1 20161016 (Linaro GCC 6.2-2016.11)) #1 SMP PREEMPT Wed Apr 17 13:10:48 EEST 2019
+CPU: ARMv7 Processor [413fc090] revision 0 (ARMv7), cr=18c5387d
+CPU: PIPT / VIPT nonaliasing data cache, VIPT aliasing instruction cache
+OF: fdt: Machine model: EGO-XZ7 (Zynq XC7Z020)
+bootconsole [earlycon0] enabled
+Memory policy: Data cache writealloc
+cma: Reserved 128 MiB at 0x38000000
+random: fast init done
+percpu: Embedded 16 pages/cpu @ef7cd000 s34764 r8192 d22580 u65536
+Built 1 zonelists, mobility grouping on.  Total pages: 260608
+Kernel command line: console=ttyPS0,115200 earlyprintk uio_pdrv_genirq.of_id=generic-uio
+PID hash table entries: 4096 (order: 2, 16384 bytes)
+Dentry cache hash table entries: 131072 (order: 7, 524288 bytes)
+Inode-cache hash table entries: 65536 (order: 6, 262144 bytes)
+Memory: 847780K/1048576K available (6144K kernel code, 237K rwdata, 1544K rodata, 1024K init, 264K bss, 69724K reserved, 131072K cma-reserved, 131072K highmem)
+Virtual kernel memory layout:
+    vector  : 0xffff0000 - 0xffff1000   (   4 kB)
+    fixmap  : 0xffc00000 - 0xfff00000   (3072 kB)
+    vmalloc : 0xf0800000 - 0xff800000   ( 240 MB)
+    lowmem  : 0xc0000000 - 0xf0000000   ( 768 MB)
+    pkmap   : 0xbfe00000 - 0xc0000000   (   2 MB)
+    modules : 0xbf000000 - 0xbfe00000   (  14 MB)
+      .text : 0xc0008000 - 0xc0700000   (7136 kB)
+      .init : 0xc0900000 - 0xc0a00000   (1024 kB)
+      .data : 0xc0a00000 - 0xc0a3b600   ( 238 kB)
+       .bss : 0xc0a3b600 - 0xc0a7d884   ( 265 kB)
+Preemptible hierarchical RCU implementation.
+	RCU restricting CPUs from NR_CPUS=4 to nr_cpu_ids=2.
+	Tasks RCU enabled.
+RCU: Adjusting geometry for rcu_fanout_leaf=16, nr_cpu_ids=2
+NR_IRQS: 16, nr_irqs: 16, preallocated irqs: 16
+efuse mapped to f0802000
+slcr mapped to f0804000
+L2C: platform modifies aux control register: 0x72360000 -> 0x72760000
+L2C: DT/platform modifies aux control register: 0x72360000 -> 0x72760000
+L2C-310 erratum 769419 enabled
+L2C-310 enabling early BRESP for Cortex-A9
+L2C-310 full line of zeros enabled for Cortex-A9
+L2C-310 ID prefetch enabled, offset 1 lines
+L2C-310 dynamic clock gating enabled, standby mode enabled
+L2C-310 cache controller enabled, 8 ways, 512 kB
+L2C-310: CACHE_ID 0x410000c8, AUX_CTRL 0x76760001
+zynq_clock_init: clkc starts at f0804100
+Zynq clock init
+sched_clock: 64 bits at 333MHz, resolution 3ns, wraps every 4398046511103ns
+clocksource: arm_global_timer: mask: 0xffffffffffffffff max_cycles: 0x4ce07af025, max_idle_ns: 440795209040 ns
+Switching to timer-based delay loop, resolution 3ns
+clocksource: ttc_clocksource: mask: 0xffff max_cycles: 0xffff, max_idle_ns: 537538477 ns
+timer #0 at f080c000, irq=17
+Console: colour dummy device 80x30
+Calibrating delay loop (skipped), value calculated using timer frequency.. 666.66 BogoMIPS (lpj=3333333)
+pid_max: default: 32768 minimum: 301
+Mount-cache hash table entries: 2048 (order: 1, 8192 bytes)
+Mountpoint-cache hash table entries: 2048 (order: 1, 8192 bytes)
+CPU: Testing write buffer coherency: ok
+CPU0: thread -1, cpu 0, socket 0, mpidr 80000000
+Setting up static identity map for 0x100000 - 0x100060
+Hierarchical SRCU implementation.
+smp: Bringing up secondary CPUs ...
+CPU1: thread -1, cpu 1, socket 0, mpidr 80000001
+smp: Brought up 1 node, 2 CPUs
+SMP: Total of 2 processors activated (1333.33 BogoMIPS).
+CPU: All CPU(s) started in SVC mode.
+devtmpfs: initialized
+VFP support v0.3: implementor 41 architecture 3 part 30 variant 9 rev 4
+clocksource: jiffies: mask: 0xffffffff max_cycles: 0xffffffff, max_idle_ns: 19112604462750000 ns
+futex hash table entries: 512 (order: 3, 32768 bytes)
+pinctrl core: initialized pinctrl subsystem
+NET: Registered protocol family 16
+DMA: preallocated 256 KiB pool for atomic coherent allocations
+cpuidle: using governor menu
+hw-breakpoint: found 5 (+1 reserved) breakpoint and 1 watchpoint registers.
+hw-breakpoint: maximum watchpoint size is 4 bytes.
+zynq-ocm f800c000.ocmc: ZYNQ OCM pool: 256 KiB @ 0xf0880000
+zynq-pinctrl 700.pinctrl: zynq pinctrl initialized
+e0001000.serial: ttyPS0 at MMIO 0xe0001000 (irq = 27, base_baud = 6249999) is a xuartps
+`k+W/*LWYXed
+console [ttyPS0] enabled
+bootconsole [earlycon0] disabled
+bootconsole [earlycon0] disabled
+vgaarb: loaded
+SCSI subsystem initialized
+usbcore: registered new interface driver usbfs
+usbcore: registered new interface driver hub
+usbcore: registered new device driver usb
+media: Linux media interface: v0.10
+Linux video capture interface: v2.00
+pps_core: LinuxPPS API ver. 1 registered
+pps_core: Software ver. 5.3.6 - Copyright 2005-2007 Rodolfo Giometti <giometti@linux.it>
+PTP clock support registered
+EDAC MC: Ver: 3.0.0
+FPGA manager framework
+fpga-region fpga-full: FPGA Region probed
+clocksource: Switched to clocksource arm_global_timer
+NET: Registered protocol family 2
+TCP established hash table entries: 8192 (order: 3, 32768 bytes)
+TCP bind hash table entries: 8192 (order: 4, 65536 bytes)
+TCP: Hash tables configured (established 8192 bind 8192)
+UDP hash table entries: 512 (order: 2, 16384 bytes)
+UDP-Lite hash table entries: 512 (order: 2, 16384 bytes)
+NET: Registered protocol family 1
+RPC: Registered named UNIX socket transport module.
+RPC: Registered udp transport module.
+RPC: Registered tcp transport module.
+RPC: Registered tcp NFSv4.1 backchannel transport module.
+Trying to unpack rootfs image as initramfs...
+Freeing initrd memory: 50304K
+hw perfevents: no interrupt-affinity property for /pmu@f8891000, guessing.
+hw perfevents: enabled with armv7_cortex_a9 PMU driver, 7 counters available
+workingset: timestamp_bits=30 max_order=18 bucket_order=0
+jffs2: version 2.2. (NAND) (SUMMARY)   2001-2006 Red Hat, Inc.
+bounce: pool size: 64 pages
+io scheduler noop registered
+io scheduler deadline registered
+io scheduler cfq registered (default)
+io scheduler mq-deadline registered
+io scheduler kyber registered
+dma-pl330 f8003000.dmac: Loaded driver for PL330 DMAC-241330
+dma-pl330 f8003000.dmac: 	DBUFF-128x8bytes Num_Chans-8 Num_Peri-4 Num_Events-16
+brd: module loaded
+loop: module loaded
+m25p80 spi0.0: found n25q256a, expected m25p80
+m25p80 spi0.0: n25q256a (32768 Kbytes)
+4 ofpart partitions found on MTD device spi0.0
+Creating 4 MTD partitions on "spi0.0":
+0x000000000000-0x000000500000 : "boot"
+0x000000500000-0x000000520000 : "bootenv"
+0x000000520000-0x000000fa0000 : "kernel"
+0x000000fa0000-0x000002000000 : "spare"
+libphy: Fixed MDIO Bus: probed
+CAN device driver interface
+libphy: MACB_mii_bus: probed
+e1000e: Intel(R) PRO/1000 Network Driver - 3.2.6-k
+e1000e: Copyright(c) 1999 - 2015 Intel Corporation.
+ehci_hcd: USB 2.0 'Enhanced' Host Controller (EHCI) Driver
+ehci-pci: EHCI PCI platform driver
+usbcore: registered new interface driver usb-storage
+chipidea-usb2 e0002000.usb: e0002000.usb supply vbus not found, using dummy regulator
+ci_hdrc ci_hdrc.0: unable to init phy: -110
+ci_hdrc: probe of ci_hdrc.0 failed with error -110
+i2c /dev entries driver
+cdns-i2c e0004000.i2c: 100 kHz mmio e0004000 irq 23
+cdns-i2c e0005000.i2c: 400 kHz mmio e0005000 irq 24
+IR NEC protocol handler initialized
+IR RC5(x/sz) protocol handler initialized
+IR RC6 protocol handler initialized
+IR JVC protocol handler initialized
+IR Sony protocol handler initialized
+IR SANYO protocol handler initialized
+IR Sharp protocol handler initialized
+IR MCE Keyboard/mouse protocol handler initialized
+IR XMP protocol handler initialized
+cdns-wdt f8005000.watchdog: Xilinx Watchdog Timer at f098e000 with timeout 10s
+EDAC MC: ECC not enabled
+Xilinx Zynq CpuIdle Driver started
+sdhci: Secure Digital Host Controller Interface driver
+sdhci: Copyright(c) Pierre Ossman
+sdhci-pltfm: SDHCI platform and OF driver helper
+mmc0: SDHCI controller on e0100000.sdhci [e0100000.sdhci] using ADMA
+ledtrig-cpu: registered to indicate activity on CPUs
+usbcore: registered new interface driver usbhid
+usbhid: USB HID core driver
+fpga_manager fpga0: Xilinx Zynq FPGA Manager registered
+NET: Registered protocol family 10
+Segment Routing with IPv6
+sit: IPv6, IPv4 and MPLS over IPv4 tunneling driver
+NET: Registered protocol family 17
+can: controller area network core (rev 20170425 abi 9)
+NET: Registered protocol family 29
+can: raw protocol (rev 20170425)
+can: broadcast manager protocol (rev 20170425 t)
+can: netlink gateway (rev 20170425) max_hops=1
+Registering SWP/SWPB emulation handler
+hctosys: unable to open rtc device (rtc0)
+of_cfs_init
+of_cfs_init: OK
+DOVDD_reg: disabling
+AVDD_reg: disabling
+DVDD_reg: disabling
+Freeing unused kernel memory: 1024K
+mmc0: Problem switching card into high-speed mode!
+mmc0: new SDXC card at address 0001
+mmcblk0: mmc0:0001 USD 119 GiB 
+INIT:  mmcblk0: p1
+version 2.88 booting
+Starting udev
+udevd[748]: starting version 3.2
+udevd[749]: starting eudev-3.2
+FAT-fs (mmcblk0p1): Volume was not properly unmounted. Some data may be corrupt. Please run fsck.
+Populating dev cache
+ALSA: Restoring mixer settings...
+/usr/sbin/alsactl: load_state:1735: No soundcards found...
+hwclock: can't open '/dev/misc/rtc': No such file or directory
+Wed Apr 17 10:15:37 UTC 2019
+hwclock: can't open '/dev/misc/rtc': No such file or directory
+Starting internet superserver: inetd.
+Running postinst /etc/rpm-postinsts/100-sysvinit-inittab...
+update-rc.d: /etc/init.d/run-postinsts exists during rc.d purge (continuing)
+ Removing any system startup links for run-postinsts ...
+  /etc/rcS.d/S99run-postinsts
+INIT: Entering runlevel: 5
+Configuring network interfaces... ifconfig: SIOCGIFFLAGS: No such device
+Starting system message bus: dbus.
+Starting Dropbear SSH server: Generating key, this may take a while...
+Public key portion is:
+ssh-rsa （略）
+Fingerprint: （略）
+dropbear.
+hwclock: can't open '/dev/misc/rtc': No such file or directory
+Starting syslogd/klogd: done
+Starting tcf-agent: OK
+/bin/autologin: line 1: -e: command not found
+root
+root@Zybo-Z7-20:~#
+
+# 進 shell 後的檢查指令
+uname -a
+Linux Zybo-Z7-20 4.9.0-xilinx-v2017.4 #1 SMP PREEMPT Wed Apr 17 13:10:48 EEST 2019 armv7l GNU/Linux
+root@Zybo-Z7-20:~# cat /proc/device-tree/model; echo
+EGO-XZ7 (Zynq XC7Z020)
+root@Zybo-Z7-20:~# cat /proc/cmdline
+console=ttyPS0,115200 earlyprintk uio_pdrv_genirq.of_id=generic-uio
+root@Zybo-Z7-20:~# head -2 /proc/meminfo
+MemTotal:        1030180 kB
+MemFree:          866612 kB
+root@Zybo-Z7-20:~# df -h
+Filesystem                Size      Used Available Use% Mounted on
+devtmpfs                414.0M      4.0K    413.9M   0% /dev
+tmpfs                   503.0M     72.0K    502.9M   0% /run
+tmpfs                   503.0M     44.0K    503.0M   0% /var/volatile
+/dev/mmcblk0p1         1020.0M    110.1M    909.9M  11% /run/media/mmcblk0p1
+root@Zybo-Z7-20:~# mount
+rootfs on / type rootfs (rw,size=423888k,nr_inodes=105972)
+proc on /proc type proc (rw,relatime)
+sysfs on /sys type sysfs (rw,relatime)
+devtmpfs on /dev type devtmpfs (rw,relatime,size=423888k,nr_inodes=105972,mode=755)
+tmpfs on /run type tmpfs (rw,nosuid,nodev,mode=755)
+tmpfs on /var/volatile type tmpfs (rw,relatime)
+/dev/mmcblk0p1 on /run/media/mmcblk0p1 type vfat (rw,relatime,gid=6,fmask=0007,dmask=0007,allow_utime=0020,codepage=437,iocharset=iso8859-1,shortname=mixed,errors=remount-ro)
+devpts on /dev/pts type devpts (rw,relatime,gid=5,mode=620,ptmxmode=000)
+root@Zybo-Z7-20:~# ls -l /dev/uio* /sys/class/uio/
+crw-------    1 root     root      246,   0 Jan  1  1970 /dev/uio0
+
+/sys/class/uio/:
+total 0
+lrwxrwxrwx    1 root     root             0 Jan  1  1970 uio0 -> ../../devices/soc0/amba_pl/43c00000.btn_led_ctrl/uio/uio0
+root@Zybo-Z7-20:~# cat /sys/class/uio/uio0/name /sys/class/uio/uio0/maps/map0/ad 
+dr 2>/dev/null
+btn_led_ctrl
+0x43c00000
+root@Zybo-Z7-20:~# grep -iE 'uio|btn' /proc/interrupts
+ 48:          0          0     GIC-0  61 Level     btn_led_ctrl
+root@Zybo-Z7-20:~#

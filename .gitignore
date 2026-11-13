@@ -20,3 +20,10 @@ vivado.jou
 hsi.log
 hsi.jou
 hsi_*.backup.log
+HW3/vivado/build/
+HW3/boot/hw/
+HW3/boot/fsbl/
+HW3/boot/prebuilt/
+HW3/sd/image.ub
+HW3/sd/zImage
+HW3/sd/zybo.dtb
