@@ -1,0 +1,2 @@
+# U-Boot 的 env import -t 只認 LF，CRLF 會讓每個變數值後面多一個 CR 字元，run boot_ego 會找不到指令
+HW3/sd/uEnv.txt text eol=lf
