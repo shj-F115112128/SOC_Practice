@@ -74,6 +74,12 @@ IRQ 61 #10: RELEASE(held 88 ms) DOUBLE -> bright = 8/31  | DATA_OUT = 1010 (DATA
 
 雙擊的第二次放開跟雙擊判定在同一拍，所以印在同一行。
 
+版本二上板影片：[`Upload/video/hw2_demo_ip.mp4`](Upload/video/hw2_demo_ip.mp4)（31 秒，依序單擊 → 長按三次 → 單擊 → 雙擊三次）。
+
+影片是用 SDK 的 Run Configuration 執行（Reset entire system、Program FPGA 都勾）。BSP 的 stdout 是 JTAG UART
+（`ps7_coresight_comp_0`），硬體沒有開 PS 的 UART，所以輸出不會出現在 COM port 的 SDK Terminal，
+要看 Console 分頁的 **TCF Debug Virtual Terminal - ARM Cortex-A9 MPCore #0**。
+
 ## Vivado Block Design
 
 ### 版本一：AXI GPIO + 自寫 RTL
