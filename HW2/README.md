@@ -43,12 +43,12 @@
 
 ## Demo
 
-https://github.com/user-attachments/assets/06318f9a-7f46-473f-a88f-b6015196d532
+https://github.com/user-attachments/assets/532a838b-4841-4d1e-b7c7-504c3906d9c9
 
 [`demo/`](demo/) 資料夾裡雙擊 `demo.bat`（版本一）或 `demo_ip.bat`（版本二），會依序燒 bitstream、
 初始化 PS、下載 ELF 並執行，詳細步驟見 [`demo/README.md`](demo/README.md)。
 
-執行後會跳出 JTAG UART 視窗，每次進 ISR 都會印一行。影片是版本一，版本一的輸出（按下、放開各一次，只有按下才切換）：
+執行後會跳出 JTAG UART 視窗，每次進 ISR 都會印一行。版本一的輸出（按下、放開各一次，只有按下才切換）：
 
 ```
 IRQ 61 #1: S6 pressed , mode = BREATH
@@ -74,7 +74,7 @@ IRQ 61 #10: RELEASE(held 88 ms) DOUBLE -> bright = 8/31  | DATA_OUT = 1010 (DATA
 
 雙擊的第二次放開跟雙擊判定在同一拍，所以印在同一行。
 
-版本二上板影片：[`Upload/video/hw2_demo_ip.mp4`](Upload/video/hw2_demo_ip.mp4)（31 秒，依序單擊 → 長按三次 → 單擊 → 雙擊三次）。
+上面的影片是版本二（31 秒，依序單擊 → 長按三次 → 單擊 → 雙擊三次），檔案另存一份在 [`Upload/video/hw2_demo_ip.mp4`](Upload/video/hw2_demo_ip.mp4)。
 
 影片是用 SDK 的 Run Configuration 執行（Reset entire system、Program FPGA 都勾）。BSP 的 stdout 是 JTAG UART
 （`ps7_coresight_comp_0`），硬體沒有開 PS 的 UART，所以輸出不會出現在 COM port 的 SDK Terminal，
