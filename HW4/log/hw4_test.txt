@@ -1,0 +1,100 @@
+^C
+
+root@Zybo-Z7-20:/run/media/mmcblk0p1# 
+##### 開機確認：kernel、device tree 節點
+uname -r
+4.9.0-xilinx-v2017.4
+root@Zybo-Z7-20:/run/media/mmcblk0p1# cat /proc/device-tree/amba_pl/btn_led_ctrl @43c00000/compatible; echo
+nkust,btn-led-ctrl-1.0
+root@Zybo-Z7-20:/run/media/mmcblk0p1# ls /dev/uio* /dev/btnled
+ls: /dev/uio*: No such file or directory
+ls: /dev/btnled: No such file or directory
+root@Zybo-Z7-20:/run/media/mmcblk0p1# cd /run/media/mmcblk0p1; ls -l btnled.ko b tnled_app
+-rwxrwx---    1 root     disk         13084 Apr 17  2019 btnled.ko
+-rwxrwx---    1 root     disk        375172 Apr 17  2019 btnled_app
+root@Zybo-Z7-20:/run/media/mmcblk0p1# 
+##### ③ insmod -> lsmod -> ls /dev -> ./btnled_app
+insmod btnled.ko
+btnled 43c00000.btn_led_ctrl: /dev/btnled major 245 minor 0, regs 0x43c00000, irq 48
+btnled: loaded, major 245 minor 0
+root@Zybo-Z7-20:/run/media/mmcblk0p1# lsmod
+    Tainted: G  
+btnled 16384 0 - Live 0xbf093000 (O)
+snd_soc_ssm2602_i2c 16384 0 - Live 0xbf083000
+snd_soc_ssm2602 20480 1 snd_soc_ssm2602_i2c, Live 0xbf07b000
+snd_soc_core 110592 2 snd_soc_ssm2602_i2c,snd_soc_ssm2602, Live 0xbf050000
+snd_pcm_dmaengine 16384 1 snd_soc_core, Live 0xbf049000
+snd_pcm 69632 3 snd_soc_ssm2602,snd_soc_core,snd_pcm_dmaengine, Live 0xbf02d000
+snd_timer 28672 1 snd_pcm, Live 0xbf020000
+snd 53248 3 snd_soc_core,snd_pcm,snd_timer, Live 0xbf009000
+soundcore 16384 1 snd, Live 0xbf000000
+root@Zybo-Z7-20:/run/media/mmcblk0p1# grep btnled /proc/devices
+245 btnled
+root@Zybo-Z7-20:/run/media/mmcblk0p1# ls -l /dev/btnled
+crw-------    1 root     root      245,   0 Apr 17 10:16 /dev/btnled
+root@Zybo-Z7-20:/run/media/mmcblk0p1# dmesg | grep -i btnled
+btnled: loading out-of-tree module taints kernel.
+btnled 43c00000.btn_led_ctrl: /dev/btnled major 245 minor 0, regs 0x43c00000, irq 48
+btnled: loaded, major 245 minor 0
+btnled: unloaded
+btnled 43c00000.btn_led_ctrl: /dev/btnled major 245 minor 0, regs 0x43c00000, irq 48
+btnled: loaded, major 245 minor 0
+root@Zybo-Z7-20:/run/media/mmcblk0p1# grep btnled /proc/interrupts
+ 48:          0          0     GIC-0  61 Level     btnled
+root@Zybo-Z7-20:/run/media/mmcblk0p1# ./btnled_app info
+/dev/btnled  major 245  minor 0  irq 0  queued 0  dropped 0
+  0x00 CTRL       = 0x00000000
+  0x04 STATUS     = 0x00000000
+  0x08 INT_STATUS = 0x00000000
+  0x0C INT_ENABLE = 0x0000001F
+  0x10 DATA_IN    = 0x00000000
+  0x14 DATA_OUT   = 0x00000000
+  0x18 EVENT_CNT  = 0x00000000
+  0x1C HOLD_MS    = 0x00000000
+  0x20 SPEED      = 0x00000000
+  0x24 BRIGHT     = 0x0000001F
+root@Zybo-Z7-20:/run/media/mmcblk0p1# ./btnled_app bright 8; ./btnled_app mode 0 ; ./btnled_app info | grep -E 'CTRL|BRIGHT'
+  0x00 CTRL       = 0x00000000
+  0x24 BRIGHT     = 0x00000008
+root@Zybo-Z7-20:/run/media/mmcblk0p1# ./btnled_app bright 31
+root@Zybo-Z7-20:/run/media/mmcblk0p1# 
+##### ./btnled_app watch 8：請按 S6（單擊 / 雙擊 / 長按）
+./btnled_app watch 8
+DATA_IN = 1000, mode FIXED, speed 3.75 s；按 S6（單擊 / 雙擊 / 長按），Ctrl-C 結束
+#1   INT_STATUS 0x01 PRESS         EVENT_CNT 1    DATA_OUT 1001 
+#2   INT_STATUS 0x02 RELEASE       EVENT_CNT 2    DATA_OUT 1002  hold 159 ms
+#3   INT_STATUS 0x04 CLICK         EVENT_CNT 3    DATA_OUT 1003  -> mode BREATH
+#4   INT_STATUS 0x01 PRESS         EVENT_CNT 4    DATA_OUT 1004 
+#5   INT_STATUS 0x02 RELEASE       EVENT_CNT 5    DATA_OUT 1005  hold 170 ms
+#6   INT_STATUS 0x04 CLICK         EVENT_CNT 6    DATA_OUT 1006  -> mode FIXED
+#7   INT_STATUS 0x01 PRESS         EVENT_CNT 7    DATA_OUT 1007 
+#8   INT_STATUS 0x02 RELEASE       EVENT_CNT 8    DATA_OUT 1008  hold 153 ms
+收到 8 筆事件
+root@Zybo-Z7-20:/run/media/mmcblk0p1# grep btnled /proc/interrupts
+ 48:          8          0     GIC-0  61 Level     btnled
+root@Zybo-Z7-20:/run/media/mmcblk0p1# ./btnled_app info | head -1
+/dev/btnled  major 245  minor 0  irq 9  queued 1  dropped 0
+root@Zybo-Z7-20:/run/media/mmcblk0p1# 
+##### ③ rmmod -> lsmod -> ./btnled_app（driver 移除後 open 失敗）
+rmmod btnled
+btnled: unloaded
+root@Zybo-Z7-20:/run/media/mmcblk0p1# lsmod
+    Tainted: G  
+snd_soc_ssm2602_i2c 16384 0 - Live 0xbf083000
+snd_soc_ssm2602 20480 1 snd_soc_ssm2602_i2c, Live 0xbf07b000
+snd_soc_core 110592 2 snd_soc_ssm2602_i2c,snd_soc_ssm2602, Live 0xbf050000
+snd_pcm_dmaengine 16384 1 snd_soc_core, Live 0xbf049000
+snd_pcm 69632 3 snd_soc_ssm2602,snd_soc_core,snd_pcm_dmaengine, Live 0xbf02d000
+snd_timer 28672 1 snd_pcm, Live 0xbf020000
+snd 53248 3 snd_soc_core,snd_pcm,snd_timer, Live 0xbf009000
+soundcore 16384 1 snd, Live 0xbf000000
+root@Zybo-Z7-20:/run/media/mmcblk0p1# grep btnled /proc/devices; ls -l /dev/btnl ed
+ls: /dev/btnled: No such file or directory
+root@Zybo-Z7-20:/run/media/mmcblk0p1# ./btnled_app info; echo exit=$?
+open /dev/btnled: No such file or directory（driver 載入了嗎？insmod btnled.ko）
+exit=1
+root@Zybo-Z7-20:/run/media/mmcblk0p1# dmesg | grep -i btnled | tail -2
+btnled: loaded, major 245 minor 0
+btnled: unloaded
+root@Zybo-Z7-20:/run/media/mmcblk0p1# 
+##### DONE

@@ -1,0 +1,5 @@
+boot_hw4=echo [boot_hw4] image.ub + hw4.dtb; fatload mmc 0 0x10000000 image.ub && fatload mmc 0 0x1F000000 hw4.dtb && bootm 0x10000000:kernel@0 0x10000000:ramdisk@0 0x1F000000
+boot_ego=echo [boot_ego] image.ub + ego.dtb; fatload mmc 0 0x10000000 image.ub && fatload mmc 0 0x1F000000 ego.dtb && bootm 0x10000000:kernel@0 0x10000000:ramdisk@0 0x1F000000
+boot_zimage=echo [boot_zimage] zImage + ego.dtb; fatload mmc 0 0x10000000 zImage && fatload mmc 0 0x1F000000 ego.dtb && bootz 0x10000000 - 0x1F000000
+boot_zybo=echo [boot_zybo] image.ub + its own Zybo DT; fatload mmc 0 0x10000000 image.ub && bootm 0x10000000
+uenvcmd=run boot_hw4

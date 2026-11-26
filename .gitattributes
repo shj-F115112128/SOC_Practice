@@ -1,2 +1,13 @@
 # U-Boot 的 env import -t 只認 LF，CRLF 會讓每個變數值後面多一個 CR 字元，run boot_ego 會找不到指令
 HW3/sd/uEnv.txt text eol=lf
+
+# HW4 的 driver / Makefile / shell script 在 WSL 編譯、uEnv.txt 給 U-Boot 讀，都要 LF
+HW4/sd/uEnv.txt text eol=lf
+HW4/src/*.c text eol=lf
+HW4/src/*.h text eol=lf
+HW4/src/Makefile text eol=lf
+HW4/src/*.ko binary
+HW4/src/btnled_app binary
+HW4/kernel/*.sh text eol=lf
+HW4/kernel/config-* text eol=lf
+HW4/tools/*.sh text eol=lf

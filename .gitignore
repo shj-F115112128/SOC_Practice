@@ -27,3 +27,11 @@ HW3/boot/prebuilt/
 HW3/sd/image.ub
 HW3/sd/zImage
 HW3/sd/zybo.dtb
+
+# HW4 Kbuild 中間檔（btnled.ko、btnled_app 要交，保留）
+HW4/src/*.o
+HW4/src/*.mod.c
+HW4/src/.*.cmd
+HW4/src/.tmp_versions/
+HW4/src/Module.symvers
+HW4/src/modules.order
