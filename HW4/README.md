@@ -45,21 +45,124 @@ OR 成一條準位觸發（level-triggered）的 `irq`。HW2 的 standalone 程�
 
 ## Device tree
 
-HW3 的 `ego.dtb` 將 `btn_led_ctrl` 設為 `generic-uio`。`uio_pdrv_genirq` 已編入 kernel，開機時就會綁定此節點
-（產生 `/dev/uio0`），自行撰寫的驅動程式便無法 probe。`hw4.dtb` 只修改 `compatible` 一行：
+### 為什麼用 device tree
+
+ARM 平台的周邊不像 PCI 可以自動偵測，kernel 必須事先知道「哪個位址有什麼硬體、中斷接到哪裡」。device tree
+就是描述這些硬體資訊的資料結構：原始碼為 `.dts`（device tree source），編譯成二進位的 `.dtb`（device tree blob），
+開機時由 bootloader 交給 kernel。驅動程式只寫「怎麼操作這種 IP」，「IP 在哪裡」由 device tree 提供。
+
+與不使用 device tree、把硬體資訊寫死在驅動程式內的做法比較：
+
+| 項目 | 不使用 device tree | 使用 device tree（本作業） |
+|---|---|---|
+| 暫存器位址 | 程式內寫死 `ioremap(0x43C00000, ...)` | 由 `reg` 屬性提供，`platform_get_resource()` 取得 |
+| IRQ 編號 | 程式內寫死 Linux IRQ 編號（如 48），或用 module 參數傳入 | 由 `interrupts` 屬性提供，kernel 轉換成 Linux IRQ 編號，`platform_get_irq()` 取得 |
+| 驅動程式何時開始運作 | `insmod` 時 `module_init` 直接存取硬體 | `insmod` 時註冊 platform driver，kernel 比對 `compatible` 成功才呼叫 probe |
+| IP 位址或中斷改變時 | 修改驅動程式並重新編譯 | 只改 device tree，驅動程式不變 |
+| 同一驅動程式管理多個相同 IP | 每個位址都要寫進程式 | 多個節點使用相同 `compatible`，每個各 probe 一次（本作業只有一個 IP，驅動程式只配置 1 個次裝置號） |
+
+在 Zynq（ARM GIC）上，Linux IRQ 編號（virq）不等於硬體中斷編號：GIC ID 61 要先經過 kernel 的 IRQ domain 建立對應，
+才會得到可用的 Linux IRQ 編號（本板為 48），而這個對應正是 kernel 解析 device tree `interrupts` 屬性時建立的。
+因此不使用 device tree 時，ISR 的 IRQ 編號只能從其他已存在的節點借用、或寫死一個開機後才知道的數字。
+
+### 節點內容
+
+`hw4.dtb` 由 HW3 的 `ego.dtb` 修改而來，PS 端節點（UART、SD、GEM、GIC、時脈）不變，PL 端只有一個節點
+（[`dts/hw4.dts`](dts/hw4.dts) 第 496～508 行）：
 
 ```
-btn_led_ctrl@43c00000 {
-    compatible = "nkust,btn-led-ctrl-1.0";   // ego.dtb 為 "generic-uio"
-    reg = <0x43C00000 0x10000>;
-    interrupt-parent = <0x4>;                // GIC
-    interrupts = <0x0 0x1D 0x4>;             // SPI 29 = GIC ID 61，4 = 高準位觸發
-    clocks = <0x1 0xF>;                      // FCLK0
+amba_pl {                                     // PL 周邊的匯流排節點
+    #address-cells = <0x1>;                   // 子節點 reg 的位址佔 1 個 32-bit cell
+    #size-cells = <0x1>;                      // 子節點 reg 的長度佔 1 個 cell
+    compatible = "simple-bus";                // kernel 為底下每個子節點建立 platform device
+    ranges;                                   // 子節點位址 = CPU 實體位址，不做轉換
+
+    btn_led_ctrl@43c00000 {                   // 節點名稱 @ 單元位址（unit address）
+        compatible = "nkust,btn-led-ctrl-1.0";
+        reg = <0x43C00000 0x10000>;
+        interrupt-parent = <0x4>;
+        interrupts = <0x0 0x1D 0x4>;
+        clocks = <0x1 0xF>;
+    };
 };
 ```
 
-開機時沒有驅動程式符合此 `compatible`，節點維持未綁定；執行 `insmod btnled.ko` 後，驅動程式的 `of_match_table`
-比對成功，kernel 呼叫 `btnled_probe()`，`reg` 與 `interrupts` 分別由 `platform_get_resource()`、`platform_get_irq()` 取得。
+| 屬性 | 值 | 意義 | 來源 / 對應 |
+|---|---|---|---|
+| `compatible` | `"nkust,btn-led-ctrl-1.0"` | 「廠商,裝置名稱-版本」格式的識別字串，kernel 以此比對驅動程式 | 必須與 `btnled.c` 的 `of_match_table` 字串完全相同 |
+| `reg` | `<0x43C00000 0x10000>` | 暫存器區段：起始位址 `0x43C00000`、長度 64 KB | Vivado Address Editor 中 `btn_led_ctrl_0/S00_AXI` 的位址與範圍 |
+| `interrupt-parent` | `<0x4>` | 中斷送往哪個中斷控制器，`0x4` 是 phandle（節點的參照編號） | GIC 節點 `interrupt-controller@f8f01000` 的 `phandle = <0x4>` |
+| `interrupts` | `<0x0 0x1D 0x4>` | GIC 的三個 cell：類型、編號、觸發方式 | 見下表 |
+| `clocks` | `<0x1 0xF>` | 時脈來源：phandle `0x1` 的索引 15 輸出（從 0 起算） | `clkc@100`（`phandle = <0x1>`）的 `clock-output-names` 第 15 項為 `fclk0`（50 MHz），即 IP 的 `s00_axi_aclk` |
+
+`interrupts` 三個 cell 的意義（GIC binding）：
+
+| cell | 值 | 意義 |
+|---|---|---|
+| 第 1 個 | `0` | 中斷類型：0 = SPI（shared peripheral interrupt，周邊共用中斷），1 = PPI |
+| 第 2 個 | `0x1D` = 29 | SPI 編號；GIC 中斷 ID = SPI 編號 + 32 = **61**，即 `IRQ_F2P[0]`（UG585 Table 7-4） |
+| 第 3 個 | `4` | 觸發方式：4 = 高準位觸發（`IRQ_TYPE_LEVEL_HIGH`），與 IP 的 `irq` 行為一致 |
+
+### 從 SD 卡到 probe 的流程
+
+```
+U-Boot  fatload mmc 0 0x1F000000 hw4.dtb
+        bootm ... 0x1F000000             將 dtb 位址交給 kernel（ARM 慣例放在 r2 暫存器）
+  ↓
+kernel  展開 dtb → /proc/device-tree/
+        amba_pl 是 simple-bus → 建立 platform device「43c00000.btn_led_ctrl」
+        解析 interrupts <0 29 4> → GIC domain 建立對應：GIC ID 61 → Linux IRQ 48
+        此時沒有驅動程式的 of_match_table 含 "nkust,btn-led-ctrl-1.0"，裝置維持未綁定
+  ↓
+insmod btnled.ko
+        platform_driver_register() → platform bus 逐一比對 compatible → 相符
+        → btnled_probe(pdev)
+             platform_get_resource(pdev, IORESOURCE_MEM, 0)  → 0x43C00000～0x43C0FFFF（來自 reg）
+             platform_get_irq(pdev, 0)                        → 48（來自 interrupts）
+             devm_clk_get()                                   → fclk0（來自 clocks）
+```
+
+`btnled.c` 中對應的程式：
+
+```c
+static const struct of_device_id btnled_of_match[] = {
+	{ .compatible = "nkust,btn-led-ctrl-1.0" },     // 與 device tree 節點相同
+	{ }
+};
+MODULE_DEVICE_TABLE(of, btnled_of_match);
+
+static struct platform_driver btnled_driver = {
+	.probe  = btnled_probe,
+	.remove = btnled_remove,
+	.driver = {
+		.name           = "btnled",
+		.of_match_table = btnled_of_match,
+	},
+};
+```
+
+### 為什麼要修改 compatible
+
+HW3 的 `ego.dtb` 將此節點設為 `compatible = "generic-uio"`，且 kernel 開機參數有 `uio_pdrv_genirq.of_id=generic-uio`。
+`uio_pdrv_genirq` 已編入 kernel，開機時就比對成功並綁定節點、取得 IRQ 48，產生 `/dev/uio0`。一個裝置同一時間只能
+由一個驅動程式綁定，IRQ 48 也已被佔用，`btnled.ko` 因此無法 probe。`hw4.dtb` 只將 `compatible` 改為
+`nkust,btn-led-ctrl-1.0`，其餘屬性不變，讓節點保留給 `btnled.ko`。
+
+`hw4.dtb` 由 [`dts/make_hw4_dtb.py`](dts/make_hw4_dtb.py) 產生（Python `fdt` 套件讀取 `ego.dtb`、修改屬性、寫回），
+與 `ego.dtb` 逐行比較只有 `compatible` 這一行不同：
+
+```
+python make_hw4_dtb.py ../../HW3/sd/ego.dtb ../sd/hw4.dtb
+```
+
+### 上板確認
+
+| 指令 | 結果 | 說明 |
+|---|---|---|
+| `cat /proc/device-tree/amba_pl/btn_led_ctrl@43c00000/compatible` | `nkust,btn-led-ctrl-1.0` | kernel 讀到的是 `hw4.dtb` |
+| `ls /dev/uio*` | 不存在 | generic-uio 沒有綁定此節點 |
+| `insmod btnled.ko` 後的 `dmesg` | `btnled 43c00000.btn_led_ctrl: ... regs 0x43c00000, irq 48` | probe 成功，位址與 IRQ 都來自 device tree |
+| `grep btnled /proc/interrupts` | `48: ... GIC-0  61 Level  btnled` | Linux IRQ 48 對應 GIC ID 61、準位觸發，與 `interrupts` 屬性一致 |
 
 ## 驅動程式內部說明
 
